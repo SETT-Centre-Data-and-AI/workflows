@@ -1,0 +1,164 @@
+name: Workflow Orchestrator
+
+# =================================================================== #
+# Workflow Orchestrator
+# Central place to route events and dispatch downstream reusable workflows.
+# =================================================================== #
+
+on:
+  pull_request:
+    branches: ['**']
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  env-config:
+    uses: ./.github/workflows/config.yaml
+
+  route:
+    needs: env-config
+    runs-on: ubuntu-latest
+    outputs:
+      RUN_BUILD_AND_TEST: ${{ steps.route.outputs.RUN_BUILD_AND_TEST }}
+      RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN: ${{ steps.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN }}
+      RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING: ${{ steps.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING }}
+      RUN_PRE_RELEASE_VERSION_CHECK: ${{ steps.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK }}
+      RUN_BACK_SYNC: ${{ steps.route.outputs.RUN_BACK_SYNC }}
+      RUN_SYNC_TO_PUBLIC: ${{ steps.route.outputs.RUN_SYNC_TO_PUBLIC }}
+      RUN_PUBLISH_TO_PYPI: ${{ steps.route.outputs.RUN_PUBLISH_TO_PYPI }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+
+    steps:
+    - name: Show Event Context
+      run: |
+        echo "Repo:        $GITHUB_REPOSITORY"
+        echo "Event:       $GITHUB_EVENT_NAME"
+        echo "Action:      ${{ github.event.action || 'n/a' }}"
+        echo "Ref:         $GITHUB_REF"
+        echo "Ref name:    $GITHUB_REF_NAME"
+        echo "Base ref:    ${{ github.base_ref || 'n/a' }}"
+        echo "Head ref:    ${{ github.head_ref || 'n/a' }}"
+
+    - name: Compute Routed Workflows
+      id: route
+      run: |
+        RUN_BUILD_AND_TEST=false
+        RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=false
+        RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=false
+        RUN_PRE_RELEASE_VERSION_CHECK=false
+        RUN_BACK_SYNC=false
+        RUN_SYNC_TO_PUBLIC=false
+        RUN_PUBLISH_TO_PYPI=false
+
+        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "$GITHUB_REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+            RUN_BACK_SYNC=true
+            RUN_SYNC_TO_PUBLIC=true
+          fi
+          if [ "$GITHUB_REPOSITORY" = "$PUBLIC_REPO" ] && [ "$GITHUB_REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+            RUN_PUBLISH_TO_PYPI=true
+          fi
+        fi
+
+        if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "${{ github.base_ref }}" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+              RUN_BUILD_AND_TEST=true
+            fi
+          fi
+
+          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "${{ github.base_ref }}" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+              RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=true
+              RUN_PRE_RELEASE_VERSION_CHECK=true
+            fi
+
+            if [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.head_ref }}" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+              RUN_BACK_SYNC=true
+              RUN_SYNC_TO_PUBLIC=true
+            fi
+          fi
+
+          if [ "$GITHUB_REPOSITORY" = "$PUBLIC_REPO" ] && [ "${{ github.base_ref }}" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+              RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=true
+              RUN_PRE_RELEASE_VERSION_CHECK=true
+            fi
+
+            if [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.head_ref }}" = "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
+              RUN_PUBLISH_TO_PYPI=true
+            fi
+          fi
+        fi
+
+        echo "RUN_BUILD_AND_TEST=$RUN_BUILD_AND_TEST" >> "$GITHUB_OUTPUT"
+        echo "RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=$RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN" >> "$GITHUB_OUTPUT"
+        echo "RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=$RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING" >> "$GITHUB_OUTPUT"
+        echo "RUN_PRE_RELEASE_VERSION_CHECK=$RUN_PRE_RELEASE_VERSION_CHECK" >> "$GITHUB_OUTPUT"
+        echo "RUN_BACK_SYNC=$RUN_BACK_SYNC" >> "$GITHUB_OUTPUT"
+        echo "RUN_SYNC_TO_PUBLIC=$RUN_SYNC_TO_PUBLIC" >> "$GITHUB_OUTPUT"
+        echo "RUN_PUBLISH_TO_PYPI=$RUN_PUBLISH_TO_PYPI" >> "$GITHUB_OUTPUT"
+
+    - name: Show Routed Workflow Map
+      run: |
+        echo "Routed workflows for this event:"
+        echo "  build-and-test:                       ${{ steps.route.outputs.RUN_BUILD_AND_TEST }}"
+        echo "  ensure-private-release-from-main:     ${{ steps.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN }}"
+        echo "  ensure-public-release-from-incoming:  ${{ steps.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING }}"
+        echo "  pre-release-version-check:            ${{ steps.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK }}"
+        echo "  back-sync-release-to-main:            ${{ steps.route.outputs.RUN_BACK_SYNC }}"
+        echo "  sync-to-public:                       ${{ steps.route.outputs.RUN_SYNC_TO_PUBLIC }}"
+        echo "  publish-to-pypi:                      ${{ steps.route.outputs.RUN_PUBLISH_TO_PYPI }}"
+
+  run-build-and-test:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_BUILD_AND_TEST == 'true'
+    uses: ./.github/workflows/build-and-test.yaml
+
+  run-ensure-private-release-from-main:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN == 'true'
+    uses: ./.github/workflows/ensure-private-release-from-main.yaml
+
+  run-ensure-public-release-from-incoming:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING == 'true'
+    uses: ./.github/workflows/ensure-public-release-from-incoming.yaml
+
+  run-pre-release-version-check:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK == 'true'
+    uses: ./.github/workflows/pre-release-version-check.yaml
+
+  run-back-sync-release-to-main:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_BACK_SYNC == 'true'
+    uses: ./.github/workflows/back-sync-release-to-main.yaml
+    secrets: inherit
+
+  run-sync-to-public:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_SYNC_TO_PUBLIC == 'true'
+    uses: ./.github/workflows/sync-to-public.yaml
+    secrets: inherit
+
+  run-publish-to-pypi:
+    needs: [env-config, route]
+    if: needs.route.outputs.RUN_PUBLISH_TO_PYPI == 'true'
+    uses: ./.github/workflows/publish-to-pypi.yaml
+    secrets: inherit

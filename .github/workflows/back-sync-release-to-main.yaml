@@ -1,0 +1,203 @@
+name: Back Sync Release to Main
+
+# ====================================================================== #
+# Back Sync Release to Main
+# In PRIVATE repo:
+# - on merged main -> release PR, create/reuse PR release -> main
+# - or run manually via workflow_dispatch
+# Then enable auto-merge for release -> main.
+# ====================================================================== #
+
+on:
+  workflow_call: {}
+  workflow_dispatch: {}
+
+concurrency:
+  group: back-sync-release-to-main-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  env-config:
+    uses: ./.github/workflows/config.yaml
+    secrets: inherit
+
+  back-sync-release-to-main:
+    needs: env-config
+    if: >
+      github.repository == needs.env-config.outputs.PRIVATE_REPO &&
+      (
+        github.event_name == 'workflow_call' ||
+        (github.event_name == 'workflow_dispatch' &&
+         github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
+      )
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      REPO_SYNC_TOKEN: ${{ secrets.REPO_SYNC_TOKEN }}
+
+    steps:
+    - name: Show Back Sync Context
+      run: |
+        echo "Repo:                 $GITHUB_REPOSITORY"
+        echo "Event:                $GITHUB_EVENT_NAME"
+        echo "Private repo target:  $PRIVATE_REPO"
+        echo "Head branch (source): $PRIVATE_REPO_RELEASE_BRANCH"
+        echo "Base branch (target): $PRIVATE_REPO_MAIN_BRANCH"
+        if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+          echo "Merged:               ${{ github.event.pull_request.merged }}"
+          echo "PR head ref:          ${{ github.event.pull_request.head.ref }}"
+          echo "PR base ref:          ${{ github.event.pull_request.base.ref }}"
+        fi
+
+    - name: Check Sync Token
+      run: |
+        if [ -z "${REPO_SYNC_TOKEN}" ]; then
+          echo "ERROR: REPO_SYNC_TOKEN is not set or empty in repo secrets."
+          exit 1
+        else
+          echo "Repo sync token is present (value hidden)."
+        fi
+
+    - name: Check if back-sync is needed
+      env:
+        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+      run: |
+        ahead_by=$(gh api \
+          "repos/${PRIVATE_REPO}/compare/${PRIVATE_REPO_MAIN_BRANCH}...${PRIVATE_REPO_RELEASE_BRANCH}" \
+          --jq '.ahead_by')
+
+        echo "Release ahead of main by: ${ahead_by} commits"
+
+        if [ "${ahead_by}" = "0" ]; then
+          echo "No back-sync needed: release has no commits that main lacks."
+          echo "SKIP_SYNC=true" >> "$GITHUB_ENV"
+        else
+          echo "Back-sync needed."
+          echo "SKIP_SYNC=false" >> "$GITHUB_ENV"
+        fi
+
+    - name: Check for Existing Open Back-Sync PR
+      if: env.SKIP_SYNC != 'true'
+      env:
+        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+      run: |
+        existing_pr=$(gh pr list \
+          --repo "$PRIVATE_REPO" \
+          --head "${PRIVATE_REPO_RELEASE_BRANCH}" \
+          --base "${PRIVATE_REPO_MAIN_BRANCH}" \
+          --state open \
+          --json number \
+          --jq '.[0].number' || true)
+
+        if [ -n "$existing_pr" ]; then
+          echo "Found existing back-sync PR #$existing_pr."
+        else
+          echo "No existing open back-sync PR."
+        fi
+
+        echo "PR_NUMBER=$existing_pr" >> "$GITHUB_ENV"
+
+    - name: Create Back-Sync PR if Needed
+      if: env.SKIP_SYNC != 'true'
+      env:
+        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+      run: |
+        if [ -n "${PR_NUMBER:-}" ]; then
+          echo "Reusing existing PR #$PR_NUMBER."
+          exit 0
+        fi
+
+        title="Back-sync '${PRIVATE_REPO_RELEASE_BRANCH}' into '${PRIVATE_REPO_MAIN_BRANCH}'"
+        body="Automated back-sync after merged \`${PRIVATE_REPO_MAIN_BRANCH} -> ${PRIVATE_REPO_RELEASE_BRANCH}\`."
+
+        pr_url=$(gh pr create \
+          --repo "$PRIVATE_REPO" \
+          --head "${PRIVATE_REPO_RELEASE_BRANCH}" \
+          --base "${PRIVATE_REPO_MAIN_BRANCH}" \
+          --title "$title" \
+          --body "$body")
+
+        created_pr=$(echo "$pr_url" | sed -E 's#.*/pull/([0-9]+).*#\1#')
+        if ! [[ "$created_pr" =~ ^[0-9]+$ ]]; then
+          echo "ERROR: Could not parse PR number from gh output: $pr_url"
+          exit 1
+        fi
+
+        echo "Created back-sync PR #$created_pr."
+        echo "PR_NUMBER=$created_pr" >> "$GITHUB_ENV"
+
+    - name: Validate PR Mergeability
+      if: env.SKIP_SYNC != 'true'
+      env:
+        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+      run: |
+        if [ -z "${PR_NUMBER:-}" ]; then
+          echo "ERROR: PR_NUMBER is empty. Cannot continue."
+          exit 1
+        fi
+
+        echo "Checking mergeability for PR #$PR_NUMBER..."
+        max_attempts=10
+        attempt=0
+
+        while true; do
+          mergeable=$(gh pr view "$PR_NUMBER" \
+            --repo "$PRIVATE_REPO" \
+            --json mergeable \
+            --jq '.mergeable')
+          merge_state=$(gh pr view "$PR_NUMBER" \
+            --repo "$PRIVATE_REPO" \
+            --json mergeStateStatus \
+            --jq '.mergeStateStatus')
+
+          echo "mergeable=$mergeable, mergeStateStatus=$merge_state"
+
+          if [ "$mergeable" != "UNKNOWN" ] && [ "$merge_state" != "UNKNOWN" ]; then
+            break
+          fi
+
+          attempt=$((attempt + 1))
+          if [ "$attempt" -ge "$max_attempts" ]; then
+            echo "ERROR: Could not resolve PR mergeability after ${max_attempts} attempts."
+            exit 1
+          fi
+          sleep 3
+        done
+
+        if [ "$mergeable" = "CONFLICTING" ] || [ "$merge_state" = "DIRTY" ]; then
+          pr_url=$(gh pr view "$PR_NUMBER" --repo "$PRIVATE_REPO" --json url --jq '.url')
+          echo "ERROR: Back-sync PR has merge conflicts and cannot be auto-merged."
+          echo "PR URL: $pr_url"
+          exit 1
+        fi
+
+        echo "PR #$PR_NUMBER passed mergeability checks."
+
+    - name: Enable Auto-Merge (Merge Commit)
+      if: env.SKIP_SYNC != 'true'
+      env:
+        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+      run: |
+        if ! gh pr merge "$PR_NUMBER" \
+          --repo "$PRIVATE_REPO" \
+          --auto \
+          --merge; then
+          pr_url=$(gh pr view "$PR_NUMBER" --repo "$PRIVATE_REPO" --json url --jq '.url')
+          echo "ERROR: Failed to enable auto-merge for back-sync PR."
+          echo "This may indicate merge method policy or branch-protection constraints."
+          echo "PR URL: $pr_url"
+          exit 1
+        fi
+
+        echo "Auto-merge enabled for PR #$PR_NUMBER."

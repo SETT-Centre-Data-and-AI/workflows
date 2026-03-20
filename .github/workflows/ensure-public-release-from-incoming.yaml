@@ -1,0 +1,51 @@
+name: Ensure Public Release PR Comes From Incoming Branch
+
+# =================================================================== #
+# Ensure Public Release PR Comes From Incoming Branch
+# Ensures that PRs into the public release branch
+# can only come from the public incoming branch.
+# =================================================================== #
+
+on:
+  workflow_call: {}
+
+jobs:
+  env-config:
+    uses: ./.github/workflows/config.yaml
+
+  ensure-release-from-incoming:
+    needs: env-config
+    if: >
+      github.repository == needs.env-config.outputs.PUBLIC_REPO &&
+      github.base_ref == needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+
+    steps:
+    - name: Show PR Context
+      run: |
+        echo "Repo:          $GITHUB_REPOSITORY"
+        echo "Base branch:   ${{ github.base_ref }}"
+        echo "Head branch:   ${{ github.head_ref }}"
+        echo "Public repo:   $PUBLIC_REPO"
+        echo "Release branch:$PUBLIC_REPO_RELEASE_BRANCH"
+        echo "Incoming branch:$PUBLIC_REPO_INCOMING_BRANCH"
+
+    - name: Ensure PR into public release comes from public incoming
+      run: |
+        if [ "${{ github.head_ref }}" != "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
+          echo "ERROR: PRs into '$PUBLIC_REPO_RELEASE_BRANCH' must come from '$PUBLIC_REPO_INCOMING_BRANCH'."
+          echo "Actual source branch: '${{ github.head_ref }}'"
+          exit 1
+        fi
+
+        echo "PR into '$PUBLIC_REPO_RELEASE_BRANCH' comes from '$PUBLIC_REPO_INCOMING_BRANCH'."
