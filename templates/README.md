@@ -20,14 +20,14 @@ mkdir -p .github/workflows
 curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/docs/examples/downstream-ci-orchestrator.yaml \
   -o .github/workflows/ci-orchestrator.yaml
 git add .github/workflows/ci-orchestrator.yaml
-git commit -m "feat: add centralized CI/CD orchestrator"
+git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 ```
 
 ## 3. Configure Variables
 
-**Organization-level (one-time setup)**:
-Go to organization Settings → Secrets and variables → Variables
+**Organisation-level (one-time setup)**:
+Go to organisation Settings → Secrets and variables → Variables
 
 Reference: [org-variables.example.env](org-variables.example.env)
 
@@ -38,8 +38,8 @@ Reference: [repo-variables.example.env](repo-variables.example.env)
 
 ## 4. Configure Secrets
 
-**Organization-level (one-time setup)**:
-Go to organization Settings → Secrets and variables → Secrets → New organization secret
+**Organisation-level (one-time setup)**:
+Go to organisation Settings → Secrets and variables → Secrets → New organisation secret
 
 - `REPO_SYNC_TOKEN` — GitHub PAT for cross-repo sync (skip if private-only)
 - `PYPI_TOKEN` — PyPI token for publishing (skip if private-only)
@@ -60,7 +60,7 @@ A: Always use `@release` for stable, tested versions. Use `@main` only during de
 A: Yes. Set repository variables with the same name and they take precedence.
 
 **Q: Do I need to set up all the variables?**
-A: No. Organization variables provide defaults. Only override what's unique to your repo.
+A: No. Organisation variables provide defaults. Only override what's unique to your repo.
 
 **Q: What if I want to temporarily disable sync?**
 A: Remove `REPO_SYNC_TOKEN` access from your repo, update PUBLIC_REPO to empty, or skip merging to release.

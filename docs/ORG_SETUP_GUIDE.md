@@ -1,18 +1,18 @@
-# Organization Setup Guide
+# Organisation Setup Guide
 
-Configure your GitHub organization to enforce centralized CI/CD policy using these workflows.
+Configure your GitHub organisation to enforce centralised CI/CD policy using these workflows.
 
 ## Overview
 
 This guide shows you how to:
-1. Create organization-level secrets and variables
+1. Create organisation-level secrets and variables
 2. Configure required status checks via GitHub rulesets
 3. Apply branch protection rules across adopter repositories
 4. Define which repos participate in the mandatory private-to-public sync pipeline
 
-## 1. Organization Secrets Setup
+## 1. Organisation Secrets Setup
 
-Create these organization secrets with **selected repository access** (grant access only to repos that need them):
+Create these organisation secrets with **selected repository access** (grant access only to repos that need them):
 
 ### REPO_SYNC_TOKEN
 - **Purpose**: GitHub Personal Access Token for cross-repo sync operations (back-sync, sync-to-public, sync-from-public)
@@ -28,9 +28,9 @@ Create these organization secrets with **selected repository access** (grant acc
 - **Scope**: Publish only (not download/manage)
 - **Apply to**: Public repositories with `publish-to-pypi` workflows
 
-## 2. Organization Variables Setup
+## 2. Organisation Variables Setup
 
-Create these organization variables with appropriate defaults. Downstream repositories can override via repository variables.
+Create these organisation variables with appropriate defaults. Downstream repositories can override via repository variables.
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
@@ -47,10 +47,10 @@ Create these organization variables with appropriate defaults. Downstream reposi
 | `VERSION_CHECK_PYTHON_VERSION` | `3.12` | Python version for running version check script |
 | `PUBLISH_PYTHON_VERSION` | `3.13` | Python version for building and publishing |
 
-### Setting Up Organization Variables in GitHub
+### Setting Up Organisation Variables in GitHub
 
-1. Go to **Organization Settings** → **Secrets and variables** → **Variables**.
-2. Click **New organization variable** for each variable above.
+1. Go to **Organisation Settings** → **Secrets and variables** → **Variables**.
+2. Click **New organisation variable** for each variable above.
 3. Paste values exactly as shown.
 4. Leave **Access** as **All repositories** (downstream repos can override if needed).
 
@@ -136,7 +136,7 @@ Require conversation resolution before merging: true
 If using GitHub Terraform provider or API automation, required status checks can be enforced at org level:
 
 ```hcl
-resource "github_organization_ruleset" "private_ci" {
+resource "github_organisation_ruleset" "private_ci" {
   name        = "Enforce CI/CD Policy (Private)"
   target      = "branch"
   enforcement = "active"
@@ -190,11 +190,11 @@ curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/main/do
 
 # 2. Commit and push
 git add .github/workflows/ci-orchestrator.yaml
-git commit -m "feat: add centralized CI/CD orchestrator"
+git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 
 # 3. Grant secrets (in GitHub UI)
-# Organization Settings → Secrets and variables → Actions
+# Organisation Settings → Secrets and variables → Actions
 # REPO_SYNC_TOKEN → Check this repository
 
 # 4. Protect branches (if not org-wide ruleset)
@@ -209,7 +209,7 @@ Same as private, plus:
 
 ## 5. Validation Checklist
 
-Before rolling out across your organization:
+Before rolling out across your organisation:
 
 - [ ] Org secrets created: `REPO_SYNC_TOKEN`, `PYPI_TOKEN`
 - [ ] Org variables created: `PRIVATE_REPO`, `PUBLIC_REPO`, matrix config, etc.
@@ -234,7 +234,7 @@ Before rolling out across your organization:
 
 **Symptom**: Workflow fails with "SECRET_NAME is not set or empty".
 
-**Cause**: Secret not granted to this repository, or organization doesn't have secret.
+**Cause**: Secret not granted to this repository, or organisation doesn't have secret.
 
 **Fix**:
 1. Org Settings → Secrets and variables → Secrets

@@ -19,7 +19,7 @@ Choose the pattern that matches your repository's lifecycle and publication mode
 
 1. Copy [downstream-private-only-ci-orchestrator.yaml](examples/downstream-private-only-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. Set organization or repository variables:
+2. Set organisation or repository variables:
    ```
    PRIVATE_REPO=your-org/your-private-repo
    PRIVATE_REPO_MAIN_BRANCH=main
@@ -222,5 +222,5 @@ Override values take precedence over org defaults.
 
 ## Further Reading
 
-- [Organization Setup Guide](ORG_SETUP_GUIDE.md)
+- [Organisation Setup Guide](ORG_SETUP_GUIDE.md)
 - [Usage and Integration](usage-guide.md)

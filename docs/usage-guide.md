@@ -4,7 +4,7 @@ Back to [README](../README.md).
 
 ## Goal
 
-Use this repository as a centralized reusable workflow orchestrator for all adopter repositories.
+Use this repository as a centralised reusable workflow orchestrator for all adopter repositories.
 
 ## Downstream Caller Workflow
 
@@ -48,7 +48,7 @@ jobs:
 ```
 
 Important:
-- Use `@release` to consume stable, tested versions of centralized workflows.
+- Use `@release` to consume stable, tested versions of centralised workflows.
 - Use `@main` only for pre-release testing in development.
 - Tag releases in this repository using semantic versioning.
 
@@ -57,7 +57,7 @@ Important:
 The config workflow supports three layers:
 
 1. `workflow_call` inputs (highest priority)
-2. Repository/organization variables (`vars.*`)
+2. Repository/organisation variables (`vars.*`)
 3. Built-in defaults in [config](../.github/workflows/config.yaml)
 
 This allows org-wide defaults with selective overrides.
@@ -65,11 +65,11 @@ This allows org-wide defaults with selective overrides.
 ## Where To Store What
 
 Secrets (sensitive):
-- Store in organization secrets with selected-repo access.
+- Store in organisation secrets with selected-repo access.
 - Examples: `REPO_SYNC_TOKEN`, `PYPI_TOKEN`, API tokens.
 
 Variables (non-sensitive):
-- Store defaults in organization variables.
+- Store defaults in organisation variables.
 - Store repo-specific override values in repository variables only when needed.
 
 Recommended org variables:

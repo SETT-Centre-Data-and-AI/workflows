@@ -16,9 +16,9 @@ uv sync --group dev
 4. When validated, commit changes to a branch and open a PR.
 5. After merge to `main`, create a git tag and release (e.g., `v0.2.0`) — downstream repos will pin to `@release` tag.
 
-## 2. Create Organization-Level Secrets
+## 2. Create Organisation-Level Secrets
 
-Create these as organization secrets with selected-repository access:
+Create these as organisation secrets with selected-repository access:
 
 - `REPO_SYNC_TOKEN`
 - `PYPI_TOKEN`
@@ -27,9 +27,9 @@ Notes:
 - `REPO_SYNC_TOKEN` should have minimum scopes required for cross-repo branch sync and PR operations.
 - `PYPI_TOKEN` should be scoped to publishing only.
 
-## 3. Create Organization-Level Variables
+## 3. Create Organisation-Level Variables
 
-Set non-sensitive defaults as organization variables (and allow repo overrides only where needed):
+Set non-sensitive defaults as organisation variables (and allow repo overrides only where needed):
 
 - `PRIVATE_REPO`
 - `PRIVATE_REPO_MAIN_BRANCH`
@@ -44,7 +44,7 @@ Set non-sensitive defaults as organization variables (and allow repo overrides o
 - `VERSION_CHECK_PYTHON_VERSION`
 - `PUBLISH_PYTHON_VERSION`
 
-## 4. Configure Organization Rulesets
+## 4. Configure Organisation Rulesets
 
 Configure branch protection/rulesets to require check contexts emitted by your orchestrator jobs.
 At minimum, require checks that represent:

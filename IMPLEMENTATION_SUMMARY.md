@@ -2,7 +2,7 @@
 
 ## Phase 1: Complete ✓
 
-**Centralized orchestrator infrastructure is ready for use.**
+**Centralised orchestrator infrastructure is ready for use.**
 
 ### What's Implemented
 
@@ -18,7 +18,7 @@
   - Calls local `workflow-orchestrator.yaml` instead of published versions
   - Enables testing workflow changes before release
 
-- **[config.yaml](.github/workflows/config.yaml)**: Centralized policy configuration
+- **[config.yaml](.github/workflows/config.yaml)**: Centralised policy configuration
   - Three-layer resolution: workflow inputs → org variables → built-in defaults
   - Exports all configuration for reuse across workflows
   - Fully parameterizable for org defaults with per-repo overrides
@@ -75,7 +75,7 @@
 - **[templates/](templates/)** — Copyable starter package for downstream adopters
   - [templates/setup.sh](templates/setup.sh) — Automated setup script
   - [templates/repo-variables.example.env](templates/repo-variables.example.env) — Repository variable defaults
-  - [templates/org-variables.example.env](templates/org-variables.example.env) — Organization variable reference
+  - [templates/org-variables.example.env](templates/org-variables.example.env) — Organisation variable reference
   - [templates/README.md](templates/README.md) — Quick reference guide
 
 ---
@@ -158,21 +158,21 @@ git push origin v0.2.0
 # Create release in GitHub UI with changelog
 ```
 
-### 2. Organization Admin Setup (One-Time)
+### 2. Organisation Admin Setup (One-Time)
 
 ```bash
 # 1. Create org secrets
-GitHub UI → Organization Settings → Secrets and variables → Secrets
+GitHub UI → Organisation Settings → Secrets and variables → Secrets
   • Add REPO_SYNC_TOKEN (PAT with repo access)
   • Add PYPI_TOKEN (PyPI publish token)
 
 # 2. Create org variables
-GitHub UI → Organization Settings → Secrets and variables → Variables
+GitHub UI → Organisation Settings → Secrets and variables → Variables
   • Add PRIVATE_REPO, PUBLIC_REPO, branch names, version matrix
   # Template is in docs/ORG_SETUP_GUIDE.md
 
 # 3. Configure rulesets
-GitHub UI → Organization Settings → Rulesets
+GitHub UI → Organisation Settings → Rulesets
   # Template is in docs/ORG_SETUP_GUIDE.md
 ```
 
@@ -189,7 +189,7 @@ mkdir -p .github/workflows
 curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/docs/examples/downstream-ci-orchestrator.yaml \
   > .github/workflows/ci-orchestrator.yaml
 git add .github/workflows/ci-orchestrator.yaml
-git commit -m "feat: add centralized CI/CD orchestrator"
+git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 
 # Share access to required secrets
@@ -212,7 +212,7 @@ GitHub UI → Repository Settings → Secrets and variables
 |----------|-----------|
 | Self-orchestrator for development | Workflows test themselves; development uses local workflows before release |
 | Downstream use `@release` tag | Stable versions; org rolls out tested changes by releasing new tags |
-| Centralized routing logic | Single control plane prevents drift; easier to audit |
+| Centralised routing logic | Single control plane prevents drift; easier to audit |
 | Config via org variables | DRY principle; reduce duplication across repos |
 | Mandatory private→public pipeline | Enforces consistent release flow; easy opt-out via config |
 | Secrets at org scope | Fewer secrets to manage; better auditability |
@@ -251,7 +251,7 @@ GitHub UI → Repository Settings → Secrets and variables
 4. **Add entry workflow** to pilot repos
 5. **Validate** using [TESTBED.md](docs/TESTBED.md) checklist
 6. **Iterate** on rulesets/variables based on pilot feedback
-7. **Rollout** to broader organization with staged enablement
+7. **Rollout** to broader organisation with staged enablement
 
 ---
 
@@ -269,7 +269,7 @@ GitHub UI → Repository Settings → Secrets and variables
 
 ```
 ┌─────────────────────────────────────┐
-│  Organization Configuration         │
+│  Organisation Configuration         │
 │ (Secrets & Variables in GitHub)     │
 │  - REPO_SYNC_TOKEN                  │
 │  - PYPI_TOKEN                       │
@@ -308,7 +308,7 @@ GitHub UI → Repository Settings → Secrets and variables
 
 ---
 
-This is your centralized CI/CD control plane.
-Maintain it well; organizations depend on it.
+This is your centralised CI/CD control plane.
+Maintain it well; organisations depend on it.
 
 Last updated: March 20, 2026

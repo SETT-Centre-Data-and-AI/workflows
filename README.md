@@ -4,7 +4,7 @@
 
 # DAIR CI/CD Workflows
 
-Centralized reusable GitHub Actions workflows for DAIR repositories.
+Centralised reusable GitHub Actions workflows for DAIR repositories.
 
 This repository is the orchestration control plane for adopter repositories:
 - Enforce consistent CI/CD gates across repositories.
@@ -15,7 +15,7 @@ This repository is the orchestration control plane for adopter repositories:
 ## What Is Implemented
 
 - Orchestrator entrypoint: [.github/workflows/workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)
-- Centralized config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
+- Centralised config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
 - Policy workflow: [.github/workflows/ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)
 - Policy workflow: [.github/workflows/ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)
 - Policy workflow: [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
@@ -27,7 +27,7 @@ This repository is the orchestration control plane for adopter repositories:
 
 - [Installation and setup](docs/installation-guide.md)
 - [Usage and downstream integration](docs/usage-guide.md)
-- [Organization setup and rulesets](docs/ORG_SETUP_GUIDE.md)
+- [Organisation setup and rulesets](docs/ORG_SETUP_GUIDE.md)
 - [Deployment patterns](docs/DEPLOYMENT_PATTERNS.md)
 - [Testbed validation](docs/TESTBED.md)
 - [Templates for downstream adopters](templates/) — Copyable starter pack with setup script
@@ -36,8 +36,8 @@ This repository is the orchestration control plane for adopter repositories:
 
 1. Keep this repository as the single source of orchestration logic.
 2. In each downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
-3. Enforce required status checks with organization rulesets.
-4. Manage secrets at org scope and non-sensitive defaults at org variable scope.
+3. Enforce required status checks with organisation rulesets.
+4. Manage secrets at organisation scope and non-sensitive defaults at organisation variable scope.
 
 **Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
 
@@ -89,7 +89,7 @@ Purpose: Build and publish package from public release branch.
 ### [.github/workflows/sync-from-public.yaml](.github/workflows/sync-from-public.yaml)
 Purpose: Manual sync from selected public branch to private incoming, then PR to private main.
 
-## License
+## Licence
 
 This work is licensed under [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
 
