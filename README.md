@@ -1,53 +1,102 @@
 <p align="center">
-  <img src="docs/images/XXX_set_package_name_XXX.png" alt="XXX_set_package_name_XXX", width=300>
+  <img src="docs/images/workflows.png" alt="DAIR CI/CD Workflows" width="300">
 </p>
 
-# XXX_set_package_name_XXX
-_**brief_tag_line**_
+# DAIR CI/CD Workflows
 
-description
+Centralized reusable GitHub Actions workflows for DAIR repositories.
 
-**Features**:
-- **feature_1** description
-- **feature_2** description
+This repository is the orchestration control plane for adopter repositories:
+- Enforce consistent CI/CD gates across repositories.
+- Enforce release-source policy (for example, private release PRs must come from main).
+- Drive private-to-public sync and publish flows.
+- Act as the certification testbed before rolling workflow changes org-wide.
 
-# 🧭 Resources
-- [Installation](./docs/installation-guide.md)
-- [Usage Guide](./docs/usage-guide.md)
+## What Is Implemented
 
-# ⚡ Quickstart
-1) Install: `pip install XXX_set_package_name_XXX`
-2) quick_start_instructions
+- Orchestrator entrypoint: [.github/workflows/workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)
+- Centralized config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
+- Policy workflow: [.github/workflows/ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)
+- Policy workflow: [.github/workflows/ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)
+- Policy workflow: [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
+- Promotion workflow: [.github/workflows/back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
+- Promotion workflow: [.github/workflows/sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
+- Promotion workflow: [.github/workflows/publish-to-pypi.yaml](.github/workflows/publish-to-pypi.yaml)
 
-```python
-import XXX_set_package_name_XXX
+## Resource Guides
 
-# quickstart_code
-```
+- [Installation and setup](docs/installation-guide.md)
+- [Usage and downstream integration](docs/usage-guide.md)
+- [Organization setup and rulesets](docs/ORG_SETUP_GUIDE.md)
+- [Deployment patterns](docs/DEPLOYMENT_PATTERNS.md)
+- [Testbed validation](docs/TESTBED.md)
+- [Templates for downstream adopters](templates/) — Copyable starter pack with setup script
 
-# 🧠 Function Quicklist
-### functions
-- `function` - description
-- `function` - description
+## Rollout Model
 
-### functions
-- `function` - description
-- `function` - description
+1. Keep this repository as the single source of orchestration logic.
+2. In each downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
+3. Enforce required status checks with organization rulesets.
+4. Manage secrets at org scope and non-sensitive defaults at org variable scope.
 
-# 🤝 Contributing
-Interested in contributing? Check out the contributing guidelines. Please note that this project is released with a Code of Conduct. By contributing to this project, you agree to abide by its terms.
+**Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
 
-# ⚖️ License
-This work is licensed under a
-[Creative Commons Attribution-NonCommercial 4.0 International License][cc-by-nc].
-[![CC BY-NC 4.0][cc-by-nc-shield]][cc-by-nc]
+## Reference Strategy
 
-[cc-by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
-[cc-by-nc-shield]: https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg
-[SETT]: https://github.com/SETT-Centre-Data-and-AI
+Downstream repositories should consume **stable releases** of this orchestrator.
 
-# 🧑‍🔬 Authors
-XXX_set_package_name_XXX was developed by XXX_add_names_XXX at University Hospital Southampton NHSFT's Data & AI Research Unit (DAIR) - part of the [Southampton Emerging Therapies and Technology (SETT) Centre][SETT].
+Default: Use `@release` tag for production.
+- `@release` — stable, tested version
+- `@main` — development version (use only in this repo during development)
+
+**For downstream repos**: Copy one of the starter templates from [templates/](templates/) and follow [templates/README.md](templates/README.md).
+
+Quick start: `bash <(curl -fsSL https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/templates/setup.sh) private-only`
+
+## Dispatch Map
+
+- Private PR to main (opened, reopened, synchronize): runs build and test.
+- Private PR to release (opened, reopened, synchronize): runs private source-branch policy and version bump check.
+- Private PR merge to release with head main: runs back-sync and sync-to-public.
+- Public PR to release (opened, reopened, synchronize): runs public source-branch policy and version bump check.
+- Public PR merge to release with head incoming_from_private: runs publish-to-pypi.
+- Manual run on private release: runs back-sync and sync-to-public.
+- Manual run on public release: runs publish-to-pypi.
+
+## Workflow Index
+
+### [.github/workflows/build-and-test.yaml](.github/workflows/build-and-test.yaml)
+Purpose: Build package and run smoke and matrix tests.
+
+### [.github/workflows/ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)
+Purpose: Enforce private release PR source branch policy.
+
+### [.github/workflows/ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)
+Purpose: Enforce public release PR source branch policy.
+
+### [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
+Purpose: Ensure version bump for release PRs.
+
+### [.github/workflows/back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
+Purpose: Create or reuse release-to-main PR in private repository and enable auto-merge.
+
+### [.github/workflows/sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
+Purpose: Mirror private release to public incoming and create or reuse PR to public release.
+
+### [.github/workflows/publish-to-pypi.yaml](.github/workflows/publish-to-pypi.yaml)
+Purpose: Build and publish package from public release branch.
+
+### [.github/workflows/sync-from-public.yaml](.github/workflows/sync-from-public.yaml)
+Purpose: Manual sync from selected public branch to private incoming, then PR to private main.
+
+## License
+
+This work is licensed under [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
+
+## Authors
+
+DAIR Workflows was developed by Cai Davis at University Hospital Southampton NHS Foundation Trust's Data and AI Research Unit (DAIR), part of the Southampton Emerging Therapies and Technology Centre.
+
 <p align="center">
   <a href="https://github.com/SETT-Centre-Data-and-AI">
     <img src="docs/images/SETT Header.png" alt="NHS UHS SETT Centre">

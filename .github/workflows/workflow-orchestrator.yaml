@@ -6,6 +6,29 @@ name: Workflow Orchestrator
 # =================================================================== #
 
 on:
+  workflow_call:
+    inputs:
+      event-name:
+        required: false
+        type: string
+      event-action:
+        required: false
+        type: string
+      base-ref:
+        required: false
+        type: string
+      head-ref:
+        required: false
+        type: string
+      ref-name:
+        required: false
+        type: string
+      repository:
+        required: false
+        type: string
+      pr-merged:
+        required: false
+        type: boolean
   pull_request:
     branches: ['**']
     types: [opened, reopened, synchronize, closed]
@@ -42,10 +65,30 @@ jobs:
       PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+      CALLER_EVENT_NAME: ${{ inputs.event-name }}
+      CALLER_EVENT_ACTION: ${{ inputs.event-action }}
+      CALLER_BASE_REF: ${{ inputs.base-ref }}
+      CALLER_HEAD_REF: ${{ inputs.head-ref }}
+      CALLER_REF_NAME: ${{ inputs.ref-name }}
+      CALLER_REPOSITORY: ${{ inputs.repository }}
+      CALLER_PR_MERGED: ${{ inputs.pr-merged }}
+      CTX_EVENT_ACTION: ${{ github.event.action || '' }}
+      CTX_BASE_REF: ${{ github.base_ref || '' }}
+      CTX_HEAD_REF: ${{ github.head_ref || '' }}
+      CTX_REF_NAME: ${{ github.ref_name || '' }}
+      CTX_PR_MERGED: ${{ github.event.pull_request.merged || false }}
 
     steps:
     - name: Show Event Context
       run: |
+        EVENT_NAME="${CALLER_EVENT_NAME:-$GITHUB_EVENT_NAME}"
+        EVENT_ACTION="${CALLER_EVENT_ACTION:-$CTX_EVENT_ACTION}"
+        BASE_REF="${CALLER_BASE_REF:-$CTX_BASE_REF}"
+        HEAD_REF="${CALLER_HEAD_REF:-$CTX_HEAD_REF}"
+        REF_NAME="${CALLER_REF_NAME:-$CTX_REF_NAME}"
+        REPOSITORY_NAME="${CALLER_REPOSITORY:-$GITHUB_REPOSITORY}"
+        PR_MERGED="${CALLER_PR_MERGED:-$CTX_PR_MERGED}"
+
         echo "Repo:        $GITHUB_REPOSITORY"
         echo "Event:       $GITHUB_EVENT_NAME"
         echo "Action:      ${{ github.event.action || 'n/a' }}"
@@ -53,10 +96,25 @@ jobs:
         echo "Ref name:    $GITHUB_REF_NAME"
         echo "Base ref:    ${{ github.base_ref || 'n/a' }}"
         echo "Head ref:    ${{ github.head_ref || 'n/a' }}"
+        echo "Effective repo:      $REPOSITORY_NAME"
+        echo "Effective event:     $EVENT_NAME"
+        echo "Effective action:    ${EVENT_ACTION:-n/a}"
+        echo "Effective base ref:  ${BASE_REF:-n/a}"
+        echo "Effective head ref:  ${HEAD_REF:-n/a}"
+        echo "Effective ref name:  ${REF_NAME:-n/a}"
+        echo "Effective merged:    ${PR_MERGED:-false}"
 
     - name: Compute Routed Workflows
       id: route
       run: |
+        EVENT_NAME="${CALLER_EVENT_NAME:-$GITHUB_EVENT_NAME}"
+        EVENT_ACTION="${CALLER_EVENT_ACTION:-$CTX_EVENT_ACTION}"
+        BASE_REF="${CALLER_BASE_REF:-$CTX_BASE_REF}"
+        HEAD_REF="${CALLER_HEAD_REF:-$CTX_HEAD_REF}"
+        REF_NAME="${CALLER_REF_NAME:-$CTX_REF_NAME}"
+        REPOSITORY_NAME="${CALLER_REPOSITORY:-$GITHUB_REPOSITORY}"
+        PR_MERGED="${CALLER_PR_MERGED:-$CTX_PR_MERGED}"
+
         RUN_BUILD_AND_TEST=false
         RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=false
         RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=false
@@ -65,42 +123,42 @@ jobs:
         RUN_SYNC_TO_PUBLIC=false
         RUN_PUBLISH_TO_PYPI=false
 
-        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "$GITHUB_REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+        if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
             RUN_BACK_SYNC=true
             RUN_SYNC_TO_PUBLIC=true
           fi
-          if [ "$GITHUB_REPOSITORY" = "$PUBLIC_REPO" ] && [ "$GITHUB_REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+          if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
             RUN_PUBLISH_TO_PYPI=true
           fi
         fi
 
-        if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "${{ github.base_ref }}" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
-            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+        if [ "$EVENT_NAME" = "pull_request" ]; then
+          if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$BASE_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
               RUN_BUILD_AND_TEST=true
             fi
           fi
 
-          if [ "$GITHUB_REPOSITORY" = "$PRIVATE_REPO" ] && [ "${{ github.base_ref }}" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
-            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+          if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$BASE_REF" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
               RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=true
               RUN_PRE_RELEASE_VERSION_CHECK=true
             fi
 
-            if [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.head_ref }}" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
               RUN_BACK_SYNC=true
               RUN_SYNC_TO_PUBLIC=true
             fi
           fi
 
-          if [ "$GITHUB_REPOSITORY" = "$PUBLIC_REPO" ] && [ "${{ github.base_ref }}" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
-            if [ "${{ github.event.action }}" = "opened" ] || [ "${{ github.event.action }}" = "reopened" ] || [ "${{ github.event.action }}" = "synchronize" ]; then
+          if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$BASE_REF" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
               RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=true
               RUN_PRE_RELEASE_VERSION_CHECK=true
             fi
 
-            if [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ] && [ "${{ github.head_ref }}" = "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
               RUN_PUBLISH_TO_PYPI=true
             fi
           fi

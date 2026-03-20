@@ -7,6 +7,49 @@ name: Environment Config
 
 on:
   workflow_call:
+    inputs:
+      package-name:
+        required: false
+        type: string
+      package-slug:
+        required: false
+        type: string
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      private-repo-incoming-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
+      release-check-repos-json:
+        required: false
+        type: string
+      build-smoke-python-version:
+        required: false
+        type: string
+      test-matrix-json:
+        required: false
+        type: string
+      version-check-python-version:
+        required: false
+        type: string
+      publish-python-version:
+        required: false
+        type: string
     outputs:
 
       # Package
@@ -54,19 +97,19 @@ on:
 # =================
 env:
   # Package
-  PACKAGE_NAME: workflows
-  PACKAGE_SLUG: workflows
+  PACKAGE_NAME: ${{ inputs.package-name || vars.PACKAGE_NAME || 'workflows' }}
+  PACKAGE_SLUG: ${{ inputs.package-slug || vars.PACKAGE_SLUG || 'workflows' }}
 
   # Private Repo
-  PRIVATE_REPO: workflows_development
-  PRIVATE_REPO_MAIN_BRANCH: main                        # when PR opened, triggers install & smoke test
-  PRIVATE_REPO_RELEASE_BRANCH: release                  # when PR merged, triggers PR to public repo
-  PRIVATE_REPO_INCOMING_BRANCH: incoming_from_public    # mirrors incoming from public
+  PRIVATE_REPO: ${{ inputs.private-repo || vars.PRIVATE_REPO || github.repository }}
+  PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch || vars.PRIVATE_REPO_MAIN_BRANCH || 'main' }}                      # when PR opened, triggers install & smoke test
+  PRIVATE_REPO_RELEASE_BRANCH: ${{ inputs.private-repo-release-branch || vars.PRIVATE_REPO_RELEASE_BRANCH || 'release' }}                # when PR merged, triggers PR to public repo
+  PRIVATE_REPO_INCOMING_BRANCH: ${{ inputs.private-repo-incoming-branch || vars.PRIVATE_REPO_INCOMING_BRANCH || 'incoming_from_public' }}  # mirrors incoming from public
 
   # Public Repo
-  PUBLIC_REPO: workflows
-  PUBLIC_REPO_INCOMING_BRANCH: incoming_from_private    # mirrors incoming from private
-  PUBLIC_REPO_RELEASE_BRANCH: release                   # when PR closed, trigger PyPI publish
+  PUBLIC_REPO: ${{ inputs.public-repo || vars.PUBLIC_REPO || 'SETT-Centre-Data-and-AI/workflows' }}
+  PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || vars.PUBLIC_REPO_INCOMING_BRANCH || 'incoming_from_private' }}  # mirrors incoming from private
+  PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || vars.PUBLIC_REPO_RELEASE_BRANCH || 'release' }}                 # when PR closed, trigger PyPI publish
 
   # Policy
   # GitHub Actions limitation: trigger branches in `on:` blocks are static and must
@@ -80,13 +123,13 @@ env:
   # - sync-to-public: merged PR to private release (plus manual)
   # - publish-to-pypi: merged PR to public release (plus manual on release branch)
   # - sync-from-public: manual only with selected public branch input
-  RELEASE_CHECK_REPOS_JSON: '["workflows_development","workflows"]'
+  RELEASE_CHECK_REPOS_JSON: ${{ inputs.release-check-repos-json || vars.RELEASE_CHECK_REPOS_JSON || format('["{0}","{1}"]', github.repository, 'SETT-Centre-Data-and-AI/workflows') }}
 
   # Runtime versions
-  BUILD_SMOKE_PYTHON_VERSION: '3.13'
-  TEST_MATRIX_JSON: '{"include":[{"os":"ubuntu-latest","python-version":"3.11"},{"os":"ubuntu-latest","python-version":"3.12"},{"os":"ubuntu-latest","python-version":"3.13"},{"os":"windows-latest","python-version":"3.13"}]}'
-  VERSION_CHECK_PYTHON_VERSION: '3.12'
-  PUBLISH_PYTHON_VERSION: '3.13'
+  BUILD_SMOKE_PYTHON_VERSION: ${{ inputs.build-smoke-python-version || vars.BUILD_SMOKE_PYTHON_VERSION || '3.13' }}
+  TEST_MATRIX_JSON: ${{ inputs.test-matrix-json || vars.TEST_MATRIX_JSON || '{"include":[{"os":"ubuntu-latest","python-version":"3.11"},{"os":"ubuntu-latest","python-version":"3.12"},{"os":"ubuntu-latest","python-version":"3.13"},{"os":"windows-latest","python-version":"3.13"}]}' }}
+  VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || vars.VERSION_CHECK_PYTHON_VERSION || '3.12' }}
+  PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || vars.PUBLISH_PYTHON_VERSION || '3.13' }}
 # =================
 # End Manual Config
 # =================

@@ -1,0 +1,27 @@
+name: Self Orchestrator (Development)
+
+# This workflow allows the workflows repo itself to use its own workflows
+# during development, before publishing to a release tag.
+
+on:
+  pull_request:
+    branches: ['**']
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  call-local-orchestrator:
+    uses: ./.github/workflows/workflow-orchestrator.yaml
+    with:
+      event-name: ${{ github.event_name }}
+      event-action: ${{ github.event.action || '' }}
+      base-ref: ${{ github.base_ref || '' }}
+      head-ref: ${{ github.head_ref || '' }}
+      ref-name: ${{ github.ref_name }}
+      repository: ${{ github.repository }}
+      pr-merged: ${{ github.event.pull_request.merged || false }}
+    secrets: inherit
