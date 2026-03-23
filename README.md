@@ -6,92 +6,150 @@
 
 Centralised reusable GitHub Actions workflows for DAIR repositories.
 
-This repository is the orchestration control plane for adopter repositories:
-- Enforce consistent CI/CD gates across repositories.
-- Enforce release-source policy (for example, private release PRs must come from main).
-- Drive private-to-public sync and publish flows.
-- Act as the certification testbed before rolling workflow changes org-wide.
+This package is the CI/CD control layer for private development, public release, and downstream reuse.
 
-## What Is Implemented
+## What This Package Does
 
-- Orchestrator entrypoint: [.github/workflows/central-orchestrator.yaml](.github/workflows/central-orchestrator.yaml)
-- Centralised config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
-- Policy workflow: [.github/workflows/ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
-- Policy workflow: [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
-- Promotion workflow: [.github/workflows/back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
-- Promotion workflow: [.github/workflows/sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
-- Promotion workflow: [.github/workflows/publish-to-pypi.yaml](.github/workflows/publish-to-pypi.yaml)
+- Applies consistent CI/CD checks across repositories.
+- Enforces release-source and version rules.
+- Automates private to public promotion.
+- Supports stable downstream consumption and live internal development.
 
-## Resource Guides
+## How It Is Used
 
-- [Installation and setup](docs/installation-guide.md)
-- [Usage and downstream integration](docs/usage-guide.md)
-- [Organisation setup and rulesets](docs/ORG_SETUP_GUIDE.md)
-- [Deployment patterns](docs/DEPLOYMENT_PATTERNS.md)
-- [Testbed validation](docs/TESTBED.md)
-- [Templates for downstream adopters](repo_template/) — Copyable starter pack
+### Downstream repositories use stable release workflows
 
-## Rollout Model
+Downstream repositories call:
 
-1. Keep this repository as the single source of orchestration logic.
-2. In each external downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
-3. Keep internal workflow repos (`workflows` and `workflows_development`) on local orchestrator calls (`uses: ./.github/workflows/central-orchestrator.yaml`) so CI always tests local workflow changes.
-4. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
-5. The orchestrator resolves configuration once via `config.yaml` and passes resolved values to routed workflows.
-6. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
-7. Enforce required status checks with organisation rulesets.
-8. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
+- `SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release`
 
-**Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
+This gives stable, tested behaviour.
 
-## Reference Strategy
+Setup guide: [Usage in Repos](repo_template/.github/workflows/README.md).
 
-External downstream repositories should consume **stable releases** of this orchestrator.
+### Internal workflows repositories use local branch workflows
 
-Internal workflow repositories must use local orchestrator references:
-- `SETT-Centre-Data-and-AI/workflows`
-- `SETT-Centre-Data-and-AI/workflows_development`
+`workflows` and `workflows_development` call:
 
-Default: Use `@release` tag for production.
-- `@release` — stable, tested version
-- `@main` — development version (use only for controlled pre-release validation in external repos)
+- `./.github/workflows/central-orchestrator.yaml`
 
-For downstream repositories: copy [repo_template/.github/workflows](repo_template/.github/workflows) into the repository root and remove the outer `repo_template` folder.
+This means workflow changes are tested directly from the current branch.
 
-Common case: set `private-repo`, `public-repo`, `package-name`, and `package-slug` in the caller workflow inputs. If needed, set `test-matrix-json` as inline compact JSON.
 
-## Dispatch Map
+## Routing Flow
 
-- Private PR to main (opened, reopened, synchronize): runs build and test.
-- Private PR to release (opened, reopened, synchronize): runs private source-branch policy and version bump check.
-- Private PR merge to release with head main: runs back-sync and sync-to-public.
-- Public PR to release (opened, reopened, synchronize): runs public source-branch policy and version bump check.
-- Public PR merge to release with head incoming_from_private: runs publish-to-pypi.
-- Manual run on private release: runs back-sync and sync-to-public.
-- Manual run on public release: runs publish-to-pypi.
+1. Caller workflow sends event context and repository inputs.
+2. `central-orchestrator.yaml` resolves defaults and overrides through `config.yaml`.
+3. Route conditions are evaluated from event, repo, base branch, and head branch.
+4. Only required workflows run.
 
-## Workflow Index
+## Trigger Summary
 
-### [.github/workflows/build-and-test.yaml](.github/workflows/build-and-test.yaml)
-Purpose: Build package and run smoke and matrix tests.
+### PR Opened/Synchronised
+ - **Private: any -> `main`:** Runs `build-and-test.yaml` to run smoke tests and testing matrix
+ - **Private/Public: `main/incoming_from_private` -> `release`:** Runs `ensure-release-source.yaml` and `pre-release-version-check.yaml` to ensure PR comes from `main` and version has been bumped
 
-### [.github/workflows/ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
-Purpose: Enforce allowed release PR source branch policy for both private and public routes.
+### PR Merged
+ - **Private: `main` -> `release`:** Runs `back-sync-release-to-main.yaml` and `sync-to-public.yaml` to commit the release back to main (private), and sync to the public repo.
+ - **Public: `incoming_from_private` -> `release`:** Runs `publish-to-pypi.yaml` when `publish-on-release` is enabled.
 
-### [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
-Purpose: Ensure version bump for release PRs.
+### Manual Dispatch
+- **Sync from Public Repo**: pulls a public branch into the private repo
+- **Publish to PyPI**: publishes to PyPI
 
-### [.github/workflows/back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
-Purpose: Create or reuse release-to-main PR in private repository and enable auto-merge.
+## Key Workflows
 
-### [.github/workflows/sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
-Purpose: Mirror private release to public incoming and create or reuse PR to public release.
+- [central-orchestrator.yaml](.github/workflows/central-orchestrator.yaml)
+- [self-orchestrator.yaml](.github/workflows/self-orchestrator.yaml)
+- [config.yaml](.github/workflows/config.yaml)
+- [build-and-test.yaml](.github/workflows/build-and-test.yaml)
+- [ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
+- [pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
+- [back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
+- [sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
+- [sync-from-public.yaml](.github/workflows/sync-from-public.yaml)
+- [publish-to-pypi.yaml](.github/workflows/publish-to-pypi.yaml)
 
-### [.github/workflows/publish-to-pypi.yaml](.github/workflows/publish-to-pypi.yaml)
-Purpose: Build and publish package from public release branch.
+## Architecture
 
-### [.github/workflows/sync-from-public.yaml](.github/workflows/sync-from-public.yaml)
-Purpose: Sync selected public branch to private incoming, then PR to private main (manual in this repo and reusable from downstream wrapper workflows).
+```mermaid
+flowchart TD
+    A[Downstream repository] -->|calls @release| D[central-orchestrator.yaml]
+    C[workflows or workflows_development] -->|calls local workflow| D
+    D --> E[config.yaml]
+    E --> F[Resolved config]
+    F --> G[Checks and routing]
+    G --> H[build-and-test]
+    G --> I[ensure-release-source]
+    G --> J[pre-release-version-check]
+    G --> K[back-sync-release-to-main]
+    G --> L[sync-to-public]
+    G --> M[publish-to-pypi]
+```
+
+## Development Lifecycle
+
+```mermaid
+flowchart TB
+
+    subgraph LEGEND[Legend]
+    direction TB
+        L_S[Source Branch]
+        L_O(PR opened Workflow)
+        L_R{Review: n reviewers}
+        L_T[Target Branch]
+        L_P(PR Closed Workflow)
+        L_S --> L_O --> L_R --> L_T --> L_P
+    end
+
+    subgraph PRIVATE[Private]
+    direction TB
+        P_MAIN[main]
+        P_DEV[any dev branch]
+        P_WF_BUILD(build-and-test)
+        P_REV_MAIN{Review: 1}
+        P_WF_REL(ensure-release-source pre-release-version-check)
+        P_REV_REL{Review: 1}
+        P_REL[release]
+        P_WF_BACK(back-sync-release-to-main)
+        P_WF_SYNC(sync-to-public)
+    end
+
+    subgraph PUBLIC[Public]
+    direction LR
+        U_IN[incoming_from_private]
+        U_REV{Review: 1}
+        U_REL[release]
+        U_WF_PUB(publish-to-pypi)
+    end
+
+    P_MAIN -->|Branch: any| P_DEV
+    P_DEV -.->|PR Opened: any to main| P_WF_BUILD
+    P_WF_BUILD -.-> P_REV_MAIN
+    P_REV_MAIN -->|PR Merged: any to main| P_MAIN
+
+    P_MAIN -.->|PR Opened: main to release| P_WF_REL
+    P_WF_REL -.-> P_REV_REL
+    P_REV_REL -->|PR Squashed: main to release| P_REL
+
+    P_REL -.->|Post-merge trigger| P_WF_BACK
+    P_REL -.->|Post-merge trigger| P_WF_SYNC
+    P_WF_BACK -.->|Auto back sync release to main| P_MAIN
+    P_WF_SYNC -.->|Sync release to incoming_from_private| U_IN
+
+    U_IN -.->|PR Opened: incoming_from_private to release| U_REV
+    U_REV -->|PR Merged incoming_from_private to release| U_REL
+    U_REL -.->|Post-merge trigger| U_WF_PUB
+
+    classDef branchNode fill:#ffe3e3,stroke:#c01c28,color:#7a0010,stroke-width:2px;
+    classDef workflowNode fill:#e6f4ff,stroke:#175cd3,color:#0b3b91,stroke-width:2px;
+    classDef reviewNode fill:#fff4cc,stroke:#b54708,color:#7a2e0e,stroke-width:2px;
+    classDef markerNode fill:#f5f5f5,stroke:#667085,color:#1f2937;
+
+    class P_MAIN,P_REL,P_DEV,U_REL,U_IN,L_S,L_T branchNode;
+    class P_WF_BUILD,P_WF_REL,P_WF_BACK,P_WF_SYNC,U_WF_PUB,L_O,L_P workflowNode;
+    class P_REV_MAIN,P_REV_REL,U_REV,L_R reviewNode;
+```
 
 ## Licence
 

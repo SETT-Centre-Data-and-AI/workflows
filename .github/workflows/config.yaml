@@ -124,7 +124,7 @@ env:
   # Runtime versions
   BUILD_SMOKE_PYTHON_VERSION: ${{ inputs.build-smoke-python-version || '3.13' }}
   TEST_MATRIX_JSON: ${{ inputs.test-matrix-json || '' }}
-  VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.12' }}
+  VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.13' }}
   PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
   PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'false' }}
 # =================

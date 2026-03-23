@@ -1,3 +1,37 @@
+## v0.10.0 (2026-03-23)
+
+### Feat
+
+- **README.md**: split post-release triggers
+- **README.md**: added header and footger
+- **README.md**: reorganised
+- **README.md**: tweaked develop/release layout
+- **README.md**: tweaked legend
+- **README.md**: tweaked descriptions
+- **README.md**: removed merge from legend
+- **README.md**: added colouring
+- **README.md**: lifecycle adjust
+- **repo_template/orchestrator.yaml**: tweaked naming
+
+### Fix
+
+- **README.md**: layout
+- **README.md**: layout
+- **README.md**: layout -reverted separate develop box
+- **README.md**: fixed layout horizontally
+- **README.md**: fixed legend
+- **README.md**: fixed legend
+- **README.md**: fixed legend
+- **README.md**: fixed legend colouring
+- **README.md**: fixed punctuation parsing
+- **README.md**: fixed {
+- **README.md**: fix attempt for lifecycle
+- **README.md**: fixed development lifecycle
+
+### Refactor
+
+- **minor**: tweaked comments and version check python version to 3.13
+
 ## v0.9.2 (2026-03-23)
 
 ### Fix

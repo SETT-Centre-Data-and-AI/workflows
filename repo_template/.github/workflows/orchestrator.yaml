@@ -1,4 +1,4 @@
-name: CI Orchestrator Entry
+name: Repo Orchestrator
 
 # Reminder:
 # grant MANAGEMENT_TOKEN to repos that use sync workflows
@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   call-central-orchestrator:
+    name: Central Orchestrator
     uses: SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release
     with:
       event-name: ${{ github.event_name }}
@@ -41,7 +42,7 @@ jobs:
 
       # Optional runtime overrides
       # build-smoke-python-version: '3.13'
-      # version-check-python-version: '3.12'
+      # version-check-python-version: '3.13'
       # publish-python-version: '3.13'
 
       # Optional: disable publish workflow on public release PR merges
