@@ -7,6 +7,24 @@ name: Sync from Public
 # ===================================================================== #
 
 on:
+  workflow_call:
+    inputs:
+      public_branch:
+        description: Name of branch in PUBLIC repo to sync from
+        type: string
+        required: true
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-incoming-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       public_branch:
@@ -18,6 +36,11 @@ jobs:
   env-config:
     name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      private-repo: ${{ inputs.private-repo || '' }}
+      private-repo-main-branch: ${{ inputs.private-repo-main-branch || '' }}
+      private-repo-incoming-branch: ${{ inputs.private-repo-incoming-branch || '' }}
+      public-repo: ${{ inputs.public-repo || '' }}
 
   sync-from-public:
     name: Sync Private
@@ -40,7 +63,7 @@ jobs:
       PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
-      PUBLIC_BRANCH: ${{ github.event.inputs.public_branch }}
+      PUBLIC_BRANCH: ${{ inputs.public_branch || github.event.inputs.public_branch }}
 
     steps:
     - name: Show Sync Context

@@ -63,6 +63,19 @@ Important:
 - Use `@main` only for pre-release testing in development.
 - Tag releases in this repository using semantic versioning.
 
+## Manual Sync From Public (Downstream Repos)
+
+Downstream repositories can include `.github/workflows/sync-from-public.yaml` from the template for manual public-to-private sync.
+
+This wrapper calls the central reusable workflow:
+
+`SETT-Centre-Data-and-AI/workflows/.github/workflows/sync-from-public.yaml@release`
+
+Run it from the Actions tab and provide `public_branch`. In the wrapper file, set:
+
+- `private-repo`
+- `public-repo`
+
 ## Configuration Precedence
 
 The config workflow supports two layers:

@@ -1,3 +1,15 @@
+## v0.6.0 (2026-03-23)
+
+### Fix
+
+- **public-release**: entered correct private/public repos
+
+## v0.5.0 (2026-03-23)
+
+### Feat
+
+- **sync-from-public**: added for downstream templating
+
 ## v0.4.0 (2026-03-23)
 
 ### Fix

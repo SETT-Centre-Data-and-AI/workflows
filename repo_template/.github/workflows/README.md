@@ -9,6 +9,7 @@ The path in this template is:
 After copying, remove the outer `repo_template` folder so the target repository contains:
 
 `/.github/workflows/ci-orchestrator.yaml`
+`/.github/workflows/sync-from-public.yaml`
 `/.github/workflows/pre-install.sh`
 `/.github/workflows/README.md`
 
@@ -20,6 +21,10 @@ What to edit:
   - set `private-repo` and/or `public-repo`
   - optionally set `publish-on-release: 'false'`
   - optionally set `test-matrix-json`
+
+- `sync-from-public.yaml`
+  - set `private-repo`
+  - set `public-repo`
 
 - `pre-install.sh`
   - keep only if tests need extra setup

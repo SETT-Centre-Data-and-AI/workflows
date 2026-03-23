@@ -77,16 +77,6 @@ jobs:
         base="${{ github.base_ref }}"
         head="${{ github.head_ref }}"
 
-        if [ "$repo" = "$PRIVATE_REPO" ] && [ "$base" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
-          if [ "$head" != "$PRIVATE_REPO_MAIN_BRANCH" ]; then
-            echo "ERROR: PRs into '$PRIVATE_REPO_RELEASE_BRANCH' must come from '$PRIVATE_REPO_MAIN_BRANCH'."
-            echo "Actual source branch: '$head'"
-            exit 1
-          fi
-          echo "Private release route allowed: $head -> $base"
-          exit 0
-        fi
-
         if [ "$repo" = "$PUBLIC_REPO" ] && [ "$base" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
           if [ "$head" != "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
             echo "ERROR: PRs into '$PUBLIC_REPO_RELEASE_BRANCH' must come from '$PUBLIC_REPO_INCOMING_BRANCH'."
@@ -94,6 +84,16 @@ jobs:
             exit 1
           fi
           echo "Public release route allowed: $head -> $base"
+          exit 0
+        fi
+
+        if [ "$repo" = "$PRIVATE_REPO" ] && [ "$base" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+          if [ "$head" != "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+            echo "ERROR: PRs into '$PRIVATE_REPO_RELEASE_BRANCH' must come from '$PRIVATE_REPO_MAIN_BRANCH'."
+            echo "Actual source branch: '$head'"
+            exit 1
+          fi
+          echo "Private release route allowed: $head -> $base"
           exit 0
         fi
 

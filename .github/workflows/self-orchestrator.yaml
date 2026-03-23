@@ -27,7 +27,7 @@ jobs:
       pr-merged: ${{ github.event.pull_request.merged || false }}
       package-name: workflows
       package-slug: workflows
-      private-repo: ${{ github.repository }}
+      private-repo: SETT-Centre-Data-and-AI/workflows_development
       private-repo-main-branch: main
       private-repo-release-branch: release
       private-repo-incoming-branch: incoming_from_public

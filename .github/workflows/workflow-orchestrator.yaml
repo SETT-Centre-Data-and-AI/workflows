@@ -189,7 +189,7 @@ jobs:
 
         if [ "$EVENT_NAME" = "pull_request" ]; then
           if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$BASE_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
-            if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
+            if ([ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]) && [ "$HEAD_REF" != "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
               RUN_BUILD_AND_TEST=true
             fi
           fi
