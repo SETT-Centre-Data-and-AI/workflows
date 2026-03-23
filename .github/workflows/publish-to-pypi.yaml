@@ -6,22 +6,51 @@ name: Publish to PyPI
 # ================================================================= #
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      package-name:
+        required: false
+        type: string
+      package-slug:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      publish-python-version:
+        required: false
+        type: string
+      publish-on-release:
+        required: false
+        type: string
   workflow_dispatch: {}
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      package-name: ${{ inputs.package-name }}
+      package-slug: ${{ inputs.package-slug }}
+      public-repo: ${{ inputs.public-repo }}
+      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
+      publish-python-version: ${{ inputs.publish-python-version }}
+      publish-on-release: ${{ inputs.publish-on-release }}
 
   publish-to-pypi:
+    name: Build and Publish
     needs: env-config
     if: > # in public repo, and called by orchestrator or run manually on release
       github.repository == needs.env-config.outputs.PUBLIC_REPO &&
       (
-        github.event_name == 'workflow_call' ||
+        github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
          github.ref_name == needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH)
-      )
+      ) &&
+      needs.env-config.outputs.PUBLISH_ON_RELEASE == 'true'
 
     runs-on: ubuntu-latest
     permissions:
@@ -31,9 +60,9 @@ jobs:
     env:
       # From shared config
       PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
+      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
       PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
-
       # Publish config
       PYTHON_VERSION: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
       PYPI_USERNAME: __token__
@@ -71,6 +100,13 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --upgrade build twine
 
+    - name: Validate package inputs
+      run: |
+        if [ -z "$PACKAGE_NAME" ] || [ -z "$PACKAGE_SLUG" ]; then
+          echo "ERROR: package-name and package-slug must be provided in ci-orchestrator workflow inputs."
+          exit 1
+        fi
+
     - name: Build Distributions
       run: python -m build
 
@@ -80,6 +116,7 @@ jobs:
     - name: Install Wheel & Smoke Test
       run: |
         python -m pip install dist/*.whl
+        python -m pip show "$PACKAGE_SLUG" > /dev/null
         python - << 'PY'
         import importlib
         pkg = "${{ env.PACKAGE_NAME }}"

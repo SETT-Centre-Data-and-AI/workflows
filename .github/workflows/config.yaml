@@ -1,4 +1,4 @@
-name: Environment Config
+name: Env Config
 
 # =================================================================== #
 # Shared Environment Variable Config
@@ -7,6 +7,49 @@ name: Environment Config
 
 on:
   workflow_call:
+    inputs:
+      package-name:
+        required: false
+        type: string
+      package-slug:
+        required: false
+        type: string
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      private-repo-incoming-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
+      build-smoke-python-version:
+        required: false
+        type: string
+      test-matrix-json:
+        required: false
+        type: string
+      version-check-python-version:
+        required: false
+        type: string
+      publish-python-version:
+        required: false
+        type: string
+      publish-on-release:
+        required: false
+        type: string
     outputs:
 
       # Package
@@ -33,10 +76,6 @@ on:
       PUBLIC_REPO_INCOMING_BRANCH:
         value: ${{ jobs.export-env.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
 
-      # Policy
-      RELEASE_CHECK_REPOS_JSON:
-        value: ${{ jobs.export-env.outputs.RELEASE_CHECK_REPOS_JSON }}
-
       # Runtime versions
       BUILD_SMOKE_PYTHON_VERSION:
         value: ${{ jobs.export-env.outputs.BUILD_SMOKE_PYTHON_VERSION }}
@@ -46,6 +85,8 @@ on:
         value: ${{ jobs.export-env.outputs.VERSION_CHECK_PYTHON_VERSION }}
       PUBLISH_PYTHON_VERSION:
         value: ${{ jobs.export-env.outputs.PUBLISH_PYTHON_VERSION }}
+      PUBLISH_ON_RELEASE:
+        value: ${{ jobs.export-env.outputs.PUBLISH_ON_RELEASE }}
 
 
 
@@ -54,39 +95,38 @@ on:
 # =================
 env:
   # Package
-  PACKAGE_NAME: workflows
-  PACKAGE_SLUG: workflows
+  PACKAGE_NAME_OVERRIDE: ${{ inputs.package-name || '' }}
+  PACKAGE_SLUG_OVERRIDE: ${{ inputs.package-slug || '' }}
 
   # Private Repo
-  PRIVATE_REPO: workflows_development
-  PRIVATE_REPO_MAIN_BRANCH: main                        # when PR opened, triggers install & smoke test
-  PRIVATE_REPO_RELEASE_BRANCH: release                  # when PR merged, triggers PR to public repo
-  PRIVATE_REPO_INCOMING_BRANCH: incoming_from_public    # mirrors incoming from public
+  PRIVATE_REPO: ${{ inputs.private-repo || github.repository }}
+  PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch || 'main' }}                      # when PR opened, triggers install & smoke test
+  PRIVATE_REPO_RELEASE_BRANCH: ${{ inputs.private-repo-release-branch || 'release' }}                # when PR merged, triggers PR to public repo
+  PRIVATE_REPO_INCOMING_BRANCH: ${{ inputs.private-repo-incoming-branch || 'incoming_from_public' }}  # mirrors incoming from public
 
   # Public Repo
-  PUBLIC_REPO: workflows
-  PUBLIC_REPO_INCOMING_BRANCH: incoming_from_private    # mirrors incoming from private
-  PUBLIC_REPO_RELEASE_BRANCH: release                   # when PR closed, trigger PyPI publish
+  PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+  PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || 'incoming_from_private' }}  # mirrors incoming from private
+  PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}                 # when PR closed, trigger PyPI publish
 
   # Policy
   # GitHub Actions limitation: trigger branches in `on:` blocks are static and must
   # still be updated in workflow files when these branch values change.
   # Trigger contract:
   # - build-and-test: PR opened/reopened/synchronize to PRIVATE_REPO_MAIN_BRANCH (private only)
-  # - ensure-private-release-from-main: PR to PRIVATE_REPO_RELEASE_BRANCH must have head PRIVATE_REPO_MAIN_BRANCH (private only)
-  # - ensure-public-release-from-incoming: PR to PUBLIC_REPO_RELEASE_BRANCH must have head PUBLIC_REPO_INCOMING_BRANCH (public only)
-  # - pre-release-version-check: PR to *_RELEASE_BRANCH in repos listed by RELEASE_CHECK_REPOS_JSON
+  # - ensure-release-source: validates private main->release and public incoming->release routes
+  # - pre-release-version-check: PR to PRIVATE_REPO_RELEASE_BRANCH or PUBLIC_REPO_RELEASE_BRANCH
   # - back-sync-release-to-main: merged PR main->release in private repo (plus manual)
   # - sync-to-public: merged PR to private release (plus manual)
   # - publish-to-pypi: merged PR to public release (plus manual on release branch)
   # - sync-from-public: manual only with selected public branch input
-  RELEASE_CHECK_REPOS_JSON: '["workflows_development","workflows"]'
 
   # Runtime versions
-  BUILD_SMOKE_PYTHON_VERSION: '3.13'
-  TEST_MATRIX_JSON: '{"include":[{"os":"ubuntu-latest","python-version":"3.11"},{"os":"ubuntu-latest","python-version":"3.12"},{"os":"ubuntu-latest","python-version":"3.13"},{"os":"windows-latest","python-version":"3.13"}]}'
-  VERSION_CHECK_PYTHON_VERSION: '3.12'
-  PUBLISH_PYTHON_VERSION: '3.13'
+  BUILD_SMOKE_PYTHON_VERSION: ${{ inputs.build-smoke-python-version || '3.13' }}
+  TEST_MATRIX_JSON: ${{ inputs.test-matrix-json || '' }}
+  VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.12' }}
+  PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
+  PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'true' }}
 # =================
 # End Manual Config
 # =================
@@ -94,6 +134,7 @@ env:
 
 jobs:
   export-env:
+    name: Export Env
     runs-on: ubuntu-latest
     outputs:
 
@@ -112,23 +153,37 @@ jobs:
       PUBLIC_REPO_RELEASE_BRANCH: ${{ steps.set.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       PUBLIC_REPO_INCOMING_BRANCH: ${{ steps.set.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
 
-      # Policy
-      RELEASE_CHECK_REPOS_JSON: ${{ steps.set.outputs.RELEASE_CHECK_REPOS_JSON }}
-
       # Runtime versions
       BUILD_SMOKE_PYTHON_VERSION: ${{ steps.set.outputs.BUILD_SMOKE_PYTHON_VERSION }}
       TEST_MATRIX_JSON: ${{ steps.set.outputs.TEST_MATRIX_JSON }}
       VERSION_CHECK_PYTHON_VERSION: ${{ steps.set.outputs.VERSION_CHECK_PYTHON_VERSION }}
       PUBLISH_PYTHON_VERSION: ${{ steps.set.outputs.PUBLISH_PYTHON_VERSION }}
+      PUBLISH_ON_RELEASE: ${{ steps.set.outputs.PUBLISH_ON_RELEASE }}
 
 
     steps:
     - id: set
-      run: |2
+      shell: bash
+      run: |
+        default_test_matrix='{"include":[{"os":"ubuntu-latest","python-version":"3.11"},{"os":"ubuntu-latest","python-version":"3.12"},{"os":"ubuntu-latest","python-version":"3.13"},{"os":"windows-latest","python-version":"3.13"}]}'
+
+        package_name="${PACKAGE_NAME_OVERRIDE}"
+        package_slug="${PACKAGE_SLUG_OVERRIDE}"
+
+        matrix_json="${TEST_MATRIX_JSON}"
+        if [ -z "$matrix_json" ]; then
+          matrix_json="$default_test_matrix"
+        fi
+
+        publish_on_release="${PUBLISH_ON_RELEASE_RAW,,}"
+        if [ "$publish_on_release" != "true" ] && [ "$publish_on_release" != "false" ]; then
+          echo "PUBLISH_ON_RELEASE must be 'true' or 'false'."
+          exit 1
+        fi
 
         # Package
-        echo "PACKAGE_NAME=${{ env.PACKAGE_NAME }}" >> "$GITHUB_OUTPUT"
-        echo "PACKAGE_SLUG=${{ env.PACKAGE_SLUG }}" >> "$GITHUB_OUTPUT"
+        echo "PACKAGE_NAME=$package_name" >> "$GITHUB_OUTPUT"
+        echo "PACKAGE_SLUG=$package_slug" >> "$GITHUB_OUTPUT"
 
         # Private Repo
         echo "PRIVATE_REPO=${{ env.PRIVATE_REPO }}" >> "$GITHUB_OUTPUT"
@@ -141,15 +196,13 @@ jobs:
         echo "PUBLIC_REPO_RELEASE_BRANCH=${{ env.PUBLIC_REPO_RELEASE_BRANCH }}" >> "$GITHUB_OUTPUT"
         echo "PUBLIC_REPO_INCOMING_BRANCH=${{ env.PUBLIC_REPO_INCOMING_BRANCH }}" >> "$GITHUB_OUTPUT"
 
-        # Policy
-        echo "RELEASE_CHECK_REPOS_JSON=${{ env.RELEASE_CHECK_REPOS_JSON }}" >> "$GITHUB_OUTPUT"
-
         # Runtime versions
         echo "BUILD_SMOKE_PYTHON_VERSION=${{ env.BUILD_SMOKE_PYTHON_VERSION }}" >> "$GITHUB_OUTPUT"
         {
           echo "TEST_MATRIX_JSON<<EOF"
-          echo '${{ env.TEST_MATRIX_JSON }}'
+          echo "$matrix_json"
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
         echo "VERSION_CHECK_PYTHON_VERSION=${{ env.VERSION_CHECK_PYTHON_VERSION }}" >> "$GITHUB_OUTPUT"
         echo "PUBLISH_PYTHON_VERSION=${{ env.PUBLISH_PYTHON_VERSION }}" >> "$GITHUB_OUTPUT"
+        echo "PUBLISH_ON_RELEASE=$publish_on_release" >> "$GITHUB_OUTPUT"

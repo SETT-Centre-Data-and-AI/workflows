@@ -1,4 +1,4 @@
-name: Sync to Public Repo
+name: Sync to Public
 
 # =============================================================== #
 # Sync to Public Repo
@@ -6,20 +6,44 @@ name: Sync to Public Repo
 # =============================================================== #
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      private-repo:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
   workflow_dispatch: {}
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      private-repo: ${{ inputs.private-repo }}
+      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
+      public-repo: ${{ inputs.public-repo }}
+      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
+      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
     secrets: inherit
 
   sync-to-public:
+    name: Sync Public
     needs: env-config
     if: > # in private repo, and PR merged or run manually
       github.repository == needs.env-config.outputs.PRIVATE_REPO &&
       (
-        github.event_name == 'workflow_call' ||
+        github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
          github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
       )
@@ -38,17 +62,17 @@ jobs:
       PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
 
-      REPO_SYNC_TOKEN: ${{ secrets.REPO_SYNC_TOKEN }}
+      MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
 
     steps:
     - name: Check Sync Token
       run: |
-        if [ -z "${REPO_SYNC_TOKEN}" ]; then
-          echo "ERROR: Repo sync token is not set or empty"
+        if [ -z "${MANAGEMENT_TOKEN}" ]; then
+          echo "ERROR: MANAGEMENT_TOKEN is not set or empty"
           exit 1
         else
-          echo "Repo sync token is present"
+          echo "Management token is present"
         fi
 
     - name: Checkout Private Release Branch
@@ -60,7 +84,7 @@ jobs:
 
     - name: Configure Public Release Branch
       env:
-        REPO_SYNC_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        MANAGEMENT_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
         PUBLIC_REPO_INCOMING_BRANCH: ${{ env.PUBLIC_REPO_INCOMING_BRANCH }}
         PRIVATE_REPO_RELEASE_BRANCH: ${{ env.PRIVATE_REPO_RELEASE_BRANCH }}
@@ -70,7 +94,7 @@ jobs:
 
         # Add remote
         git remote remove public 2>/dev/null || true
-        git remote add public https://x-access-token:${REPO_SYNC_TOKEN}@github.com/${PUBLIC_REPO}.git
+        git remote add public https://x-access-token:${MANAGEMENT_TOKEN}@github.com/${PUBLIC_REPO}.git
 
         echo "Checking if branch ${PUBLIC_REPO_INCOMING_BRANCH} exists on public..."
         branch_ref=$(git ls-remote --heads public "refs/heads/${PUBLIC_REPO_INCOMING_BRANCH}" || true)
@@ -81,7 +105,7 @@ jobs:
         fi
 
         echo "Checking for existing open PR..."
-        export GH_TOKEN="$REPO_SYNC_TOKEN"
+        export GH_TOKEN="$MANAGEMENT_TOKEN"
         existing_pr=$(gh pr list \
           --repo "$PUBLIC_REPO" \
           --head "${PUBLIC_REPO_INCOMING_BRANCH}" \
@@ -94,19 +118,19 @@ jobs:
 
     - name: Push Release Branch to Public
       env:
-        REPO_SYNC_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        MANAGEMENT_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
         PUBLIC_REPO_INCOMING_BRANCH: ${{ env.PUBLIC_REPO_INCOMING_BRANCH }}
       run: |
         git remote show public >/dev/null 2>&1 || \
-          git remote add public https://x-access-token:${REPO_SYNC_TOKEN}@github.com/${PUBLIC_REPO}.git
+          git remote add public https://x-access-token:${MANAGEMENT_TOKEN}@github.com/${PUBLIC_REPO}.git
 
         echo "Pushing HEAD → public:${PUBLIC_REPO_INCOMING_BRANCH}"
         git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH} --force
 
     - name: Create PR for Release
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
         PUBLIC_REPO_INCOMING_BRANCH: ${{ env.PUBLIC_REPO_INCOMING_BRANCH }}
         PUBLIC_REPO_RELEASE_BRANCH: ${{ env.PUBLIC_REPO_RELEASE_BRANCH }}
