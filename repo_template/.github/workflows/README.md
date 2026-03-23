@@ -1,45 +1,57 @@
-# Repo Workflow Template
+# Usage in Repos
 
-Copy this `.github/workflows` folder into the repository root.
+Use this template to set up a downstream repository against the stable workflows release.
 
-This template is for external adopter repositories.
-Do not use it in `SETT-Centre-Data-and-AI/workflows` or `SETT-Centre-Data-and-AI/workflows_development`; those internal workflow repositories should call their local orchestrator path instead.
+Template location:
 
-The path in this template is:
+- `repo_template/.github/workflows`
 
-`repo_template/.github/workflows`
+## Quick Setup
 
-After copying, remove the outer `repo_template` folder so the target repository contains:
+1. Copy `repo_template/.github/workflows` to `/.github/workflows` in your downstream repository.
+2. Confirm these files exist:
 
-`/.github/workflows/orchestrator.yaml`
-`/.github/workflows/sync-from-public.yaml`
-`/.github/workflows/pre-install.sh`
-`/.github/workflows/README.md`
+- `/.github/workflows/orchestrator.yaml`
+- `/.github/workflows/sync-from-public.yaml`
+- `/.github/workflows/pre-install.sh`
+- `/.github/workflows/README.md`
 
-What to edit:
+## Configure `orchestrator.yaml`
 
-- `orchestrator.yaml`
-  - set `package-name`
-  - set `package-slug`
-  - set `private-repo` and/or `public-repo`
-  - optionally set `publish-on-release: 'false'`
-  - optionally set `test-matrix-json`
+Set required values:
 
-- `sync-from-public.yaml`
-  - set `private-repo`
-  - set `public-repo`
+- `package-name`
+- `package-slug`
+- `private-repo` and/or `public-repo`
 
-- `pre-install.sh`
-  - keep only if tests need extra setup
-  - delete it if it is not needed
+Optional values:
 
-Required secrets:
+- `publish-on-release: 'true'` if you want publish on public release merges (default is off)
+- `test-matrix-json` if you want a custom test matrix
+- branch overrides if you do not use `main` and `release`
 
-- `MANAGEMENT_TOKEN` for sync workflows
-- `PYPI_TOKEN` for publish workflow
+This file calls the central stable orchestrator:
 
-Optional repo variable:
+- `SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release`
 
-- `PUBLISH_ON_RELEASE=false`
+## Configure `sync-from-public.yaml`
 
-No other GitHub variables are required.
+Set:
+
+- `private-repo`
+- `public-repo`
+
+Use this workflow for manual pullback from a selected public branch to private.
+
+## Optional `pre-install.sh`
+
+Use this script if your tests need extra setup before package install.
+
+## Required Secrets
+
+Set repository or organisation secrets as needed:
+
+- `MANAGEMENT_TOKEN` for cross-repository sync operations
+- `PYPI_TOKEN` for publishing from public repositories
+
+No extra repository variables are required for default use.
