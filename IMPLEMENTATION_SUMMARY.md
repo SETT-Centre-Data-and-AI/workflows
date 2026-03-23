@@ -33,7 +33,7 @@
 
 - **[pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)**
   - Validates version bump in `pyproject.toml` when targeting release branches
-  - **Required status check**: `validate-version-bump`
+  - **Required route/check target**: `pre-release-version-check`
 
 #### Promotion Workflows
 - **[back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)**
@@ -73,6 +73,7 @@
 
 - **[repo_template/](repo_template/)** — Copyable starter package for downstream adopters
   - [repo_template/.github/workflows/ci-orchestrator.yaml](repo_template/.github/workflows/ci-orchestrator.yaml) — Copyable caller workflow
+  - [repo_template/.github/workflows/sync-from-public.yaml](repo_template/.github/workflows/sync-from-public.yaml) — Manual downstream wrapper for public-to-private sync
   - [repo_template/.github/workflows/pre-install.sh](repo_template/.github/workflows/pre-install.sh) — Optional custom setup hook
   - [repo_template/.github/workflows/README.md](repo_template/.github/workflows/README.md) — Copy instructions for the folder
 
@@ -93,19 +94,23 @@ workflow_call: workflow-orchestrator.yaml@release   ← Stable release tag
     ↓
   route outputs flags: RUN_BUILD, RUN_ENSURE_*, RUN_BACK_SYNC, RUN_SYNC_*, RUN_PUBLISH
     ↓
-  conditional jobs call specific workflows
+  conditional jobs call specific workflows with resolved inputs
     ↓
-Workflows execute with inherited secrets + config
+Routed workflows execute directly with inherited secrets
 ```
 
 ### Configuration Resolution
 
 ```
-Downstream repo calls config.yaml with optional inputs
+Downstream repo calls workflow-orchestrator.yaml with optional inputs
+    ↓
+workflow-orchestrator.yaml calls config.yaml once
     ↓
   inputs provided?
     Yes → Use it
     No  → Use built-in default
+    ↓
+Orchestrator passes resolved values to routed workflows
 ```
 
 ### Configuration Scope

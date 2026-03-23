@@ -14,15 +14,8 @@ on:
         type: string
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      version-check-python-version: ${{ inputs.version-check-python-version }}
-
   check-version-bump:
     name: Check Version
-    needs: env-config
 
     runs-on: ubuntu-latest
 
@@ -31,7 +24,7 @@ jobs:
         shell: bash
 
     env:
-      PYTHON_VERSION: ${{ needs.env-config.outputs.VERSION_CHECK_PYTHON_VERSION }}
+      PYTHON_VERSION: ${{ inputs.version-check-python-version }}
 
     steps:
     - name: Show PR context

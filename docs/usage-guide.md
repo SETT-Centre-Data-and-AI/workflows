@@ -78,6 +78,8 @@ Run it from the Actions tab and provide `public_branch`. In the wrapper file, se
 
 ## Configuration Precedence
 
+Configuration is resolved once in [workflow-orchestrator](../.github/workflows/workflow-orchestrator.yaml) via [config](../.github/workflows/config.yaml), then routed workflows receive resolved inputs directly.
+
 The config workflow supports two layers:
 
 1. `workflow_call` inputs (highest priority)

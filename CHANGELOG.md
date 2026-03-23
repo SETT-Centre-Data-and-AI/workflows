@@ -1,3 +1,14 @@
+## v0.8.0 (2026-03-23)
+
+### Feat
+
+- **review**: reviewd inc docs
+- **.gitignore**: kept all *.yaml in template workflows
+
+### Refactor
+
+- **workflows**: refactored to remove repeat calls to config.yaml
+
 ## v0.7.0 (2026-03-23)
 
 ### Feat

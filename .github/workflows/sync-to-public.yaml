@@ -26,26 +26,14 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      private-repo: ${{ inputs.private-repo }}
-      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
-      public-repo: ${{ inputs.public-repo }}
-      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
-      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
-    secrets: inherit
-
   sync-to-public:
     name: Sync Public
-    needs: env-config
     if: > # in private repo, and PR merged or run manually
-      github.repository == needs.env-config.outputs.PRIVATE_REPO &&
+      github.repository == (inputs.private-repo || github.repository) &&
       (
         github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
-         github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
+         github.ref_name == (inputs.private-repo-release-branch || 'release'))
       )
     runs-on: ubuntu-latest
 
@@ -55,12 +43,12 @@ jobs:
 
     env:
       # From shared config
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      PRIVATE_REPO: ${{ inputs.private-repo || github.repository }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ inputs.private-repo-release-branch || 'release' }}
 
-      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
-      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
-      PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+      PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}
+      PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || 'incoming_from_private' }}
 
       MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 

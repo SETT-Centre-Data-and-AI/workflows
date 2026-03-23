@@ -36,9 +36,10 @@ This repository is the orchestration control plane for adopter repositories:
 1. Keep this repository as the single source of orchestration logic.
 2. In each downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
 3. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
-4. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
-5. Enforce required status checks with organisation rulesets.
-6. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
+4. The orchestrator resolves configuration once via `config.yaml` and passes resolved values to routed workflows.
+5. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
+6. Enforce required status checks with organisation rulesets.
+7. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
 
 **Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
 
@@ -85,7 +86,7 @@ Purpose: Mirror private release to public incoming and create or reuse PR to pub
 Purpose: Build and publish package from public release branch.
 
 ### [.github/workflows/sync-from-public.yaml](.github/workflows/sync-from-public.yaml)
-Purpose: Manual sync from selected public branch to private incoming, then PR to private main.
+Purpose: Sync selected public branch to private incoming, then PR to private main (manual in this repo and reusable from downstream wrapper workflows).
 
 ## Licence
 

@@ -105,7 +105,7 @@ env:
   PRIVATE_REPO_INCOMING_BRANCH: ${{ inputs.private-repo-incoming-branch || 'incoming_from_public' }}  # mirrors incoming from public
 
   # Public Repo
-  PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+  PUBLIC_REPO: ${{ inputs.public-repo }}
   PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || 'incoming_from_private' }}  # mirrors incoming from private
   PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}                 # when PR closed, trigger PyPI publish
 

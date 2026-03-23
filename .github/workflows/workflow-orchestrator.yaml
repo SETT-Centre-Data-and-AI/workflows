@@ -180,7 +180,9 @@ jobs:
         if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
           if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
             RUN_BACK_SYNC=true
-            RUN_SYNC_TO_PUBLIC=true
+            if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+              RUN_SYNC_TO_PUBLIC=true
+            fi
           fi
           if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ] && [ "$PUBLISH_ON_RELEASE" = "true" ]; then
             RUN_PUBLISH_TO_PYPI=true
@@ -202,7 +204,9 @@ jobs:
 
             if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
               RUN_BACK_SYNC=true
-              RUN_SYNC_TO_PUBLIC=true
+              if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+                RUN_SYNC_TO_PUBLIC=true
+              fi
             fi
           fi
 
@@ -312,4 +316,5 @@ jobs:
       public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       publish-python-version: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
+      publish-on-release: ${{ needs.env-config.outputs.PUBLISH_ON_RELEASE }}
     secrets: inherit

@@ -29,28 +29,16 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      package-name: ${{ inputs.package-name }}
-      package-slug: ${{ inputs.package-slug }}
-      public-repo: ${{ inputs.public-repo }}
-      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
-      publish-python-version: ${{ inputs.publish-python-version }}
-      publish-on-release: ${{ inputs.publish-on-release }}
-
   publish-to-pypi:
     name: Build and Publish
-    needs: env-config
     if: > # in public repo, and called by orchestrator or run manually on release
-      github.repository == needs.env-config.outputs.PUBLIC_REPO &&
+      github.repository == (inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows') &&
       (
         github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
-         github.ref_name == needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH)
+         github.ref_name == (inputs.public-repo-release-branch || 'release'))
       ) &&
-      needs.env-config.outputs.PUBLISH_ON_RELEASE == 'true'
+      (inputs.publish-on-release || 'true') == 'true'
 
     runs-on: ubuntu-latest
     permissions:
@@ -59,12 +47,12 @@ jobs:
 
     env:
       # From shared config
-      PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
-      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
-      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
-      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      PACKAGE_NAME: ${{ inputs.package-name }}
+      PACKAGE_SLUG: ${{ inputs.package-slug }}
+      PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}
       # Publish config
-      PYTHON_VERSION: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
+      PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
       PYPI_USERNAME: __token__
 
     steps:

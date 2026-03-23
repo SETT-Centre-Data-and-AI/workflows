@@ -50,15 +50,17 @@ This keeps behavior visible in code and removes dependency on GitHub variables f
 
 ## 3. Required Status Checks Configuration
 
-### Check Names Produced by Orchestrator
+### Route Targets Produced by Orchestrator
 
-The orchestrator produces these check contexts. When _required_, they prevent merge until passing:
+The orchestrator routes to these workflows. When their check contexts are required, they prevent merge until passing.
+
+Important: with reusable workflows, the final check context is nested (for example `Orchestrate / Check Version / Check Version`). Always select the exact context string from the PR checks UI after first run.
 
 | Check Name | Workflow | Condition |
 |------------|----------|-----------|
 | `build-and-test` | [build-and-test.yaml](./../.github/workflows/build-and-test.yaml) | Private PR to main |
 | `ensure-release-source` | [ensure-release-source.yaml](./../.github/workflows/ensure-release-source.yaml) | PR to private or public release branch |
-| `validate-version-bump` | [pre-release-version-check.yaml](./../.github/workflows/pre-release-version-check.yaml) | Any PR to private/public release branch |
+| `pre-release-version-check` | [pre-release-version-check.yaml](./../.github/workflows/pre-release-version-check.yaml) | Any PR to private/public release branch |
 | `back-sync-release-to-main` | [back-sync-release-to-main.yaml](./../.github/workflows/back-sync-release-to-main.yaml) | Merge to private release from main |
 | `sync-to-public` | [sync-to-public.yaml](./../.github/workflows/sync-to-public.yaml) | Merge to private release from main |
 | `publish-to-pypi` | [publish-to-pypi.yaml](./../.github/workflows/publish-to-pypi.yaml) | Merge to public release from incoming |
@@ -95,7 +97,7 @@ Target: Regular expression: ^release$
 
 Required status checks:
   ✓ ensure-release-source
-  ✓ validate-version-bump
+  ✓ pre-release-version-check
 
 Require code reviews: 1
 Dismiss stale pull request approvals: true
@@ -115,7 +117,7 @@ Target: Regular expression: ^release$
 
 Required status checks:
   ✓ ensure-release-source
-  ✓ validate-version-bump
+  ✓ pre-release-version-check
   ✓ publish-to-pypi (optional, but recommended)
 
 Require code reviews: 1 (or more)

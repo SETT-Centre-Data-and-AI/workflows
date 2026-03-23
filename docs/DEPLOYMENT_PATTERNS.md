@@ -11,7 +11,7 @@ Choose the pattern that matches the repository lifecycle and publication model.
 **Workflows triggered**:
 - `build-and-test`: PR to main
 - `ensure-release-source`: PR to release branch
-- `validate-version-bump`: PR to release branch
+- `pre-release-version-check`: PR to release branch
 
 **No sync/publish to public repo.**
 
@@ -36,7 +36,7 @@ Choose the pattern that matches the repository lifecycle and publication model.
 
 4. Branch protection for `release`:
    - Require: `ensure-release-source`
-   - Require: `validate-version-bump`
+   - Require: `pre-release-version-check`
 
 ### Example Flow
 
@@ -46,7 +46,7 @@ Feature branch → PR to main
 Merge to main
 
 main → Create PR to release
-   ↓ (check: ensure-release-source passes, validate-version-bump passes)
+   ↓ (check: ensure-release-source passes, pre-release-version-check passes)
 Merge to release
     ↓
 (end; no further sync)
@@ -60,8 +60,8 @@ Merge to release
 
 **Workflows triggered**:
 - Private main: `build-and-test`
-- Private release: `ensure-release-source`, `validate-version-bump`, `back-sync-release-to-main`, `sync-to-public`
-- Public release: `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
+- Private release: `ensure-release-source`, `pre-release-version-check`, `back-sync-release-to-main`, `sync-to-public`
+- Public release: `ensure-release-source`, `pre-release-version-check`, `publish-to-pypi`
 
 **Mandatory for all adopters** unless configured otherwise.
 
@@ -89,7 +89,7 @@ Merge to release
 
 4. Branch protection:
    - `main`: require `build-and-test`
-   - `release`: require `ensure-release-source`, `validate-version-bump`
+   - `release`: require `ensure-release-source`, `pre-release-version-check`
 
 **Public Repository**:
 
@@ -113,7 +113,7 @@ Merge to release
    - `PYPI_TOKEN` (for publishing)
 
 4. Branch protection:
-   - `release`: require `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
+   - `release`: require `ensure-release-source`, `pre-release-version-check`, `publish-to-pypi`
 
 ### Example Flow
 
@@ -123,7 +123,7 @@ Private main PR
 Merge to private main
 
 private main → PR to private release
-   ↓ (checks: ensure-release-source, validate-version-bump pass)
+   ↓ (checks: ensure-release-source, pre-release-version-check pass)
 Merge to private release
     ↓ (auto)
   ├─ back-sync: create PR release→main in private repo
@@ -132,7 +132,7 @@ Merge to private release
        └─ Create PR public incoming_from_private→release
 
 public incoming PR
-      ↓ (checks: ensure-release-source, validate-version-bump pass)
+   ↓ (checks: ensure-release-source, pre-release-version-check pass)
 Merge to public release
     ↓ (auto)
    └─ publish-to-pypi: build and upload to PyPI (if publish-on-release/PUBLISH_ON_RELEASE is true)
@@ -147,7 +147,7 @@ Merge to public release
 **Workflows triggered**:
 - `build-and-test` (if configured for public repo)
 - `ensure-release-source`
-- `validate-version-bump`
+- `pre-release-version-check`
 - `publish-to-pypi`
 
 ### Setup
@@ -171,7 +171,7 @@ Merge to public release
    - `PYPI_TOKEN`
 
 4. Branch protection:
-   - `release`: require `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
+   - `release`: require `ensure-release-source`, `pre-release-version-check`, `publish-to-pypi`
 
 ### Note
 
