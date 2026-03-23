@@ -1,0 +1,100 @@
+name: Validate Release Source
+
+# =================================================================== #
+# Ensure Release PR Source Is Allowed
+# Validates allowed source->target PR routes for release branches:
+# - private: main -> release
+# - public: incoming_from_private -> release
+# =================================================================== #
+
+on:
+  workflow_call:
+    inputs:
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
+
+jobs:
+  env-config:
+    name: Resolve Config
+    uses: ./.github/workflows/config.yaml
+    with:
+      private-repo: ${{ inputs.private-repo }}
+      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
+      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
+      public-repo: ${{ inputs.public-repo }}
+      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
+      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
+
+  ensure-release-source:
+    name: Validate Source
+    needs: env-config
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+
+    steps:
+    - name: Show PR Context
+      run: |
+        echo "Repo:            $GITHUB_REPOSITORY"
+        echo "Base branch:     ${{ github.base_ref }}"
+        echo "Head branch:     ${{ github.head_ref }}"
+        echo "Private repo:    $PRIVATE_REPO"
+        echo "Private main:    $PRIVATE_REPO_MAIN_BRANCH"
+        echo "Private release: $PRIVATE_REPO_RELEASE_BRANCH"
+        echo "Public repo:     $PUBLIC_REPO"
+        echo "Public incoming: $PUBLIC_REPO_INCOMING_BRANCH"
+        echo "Public release:  $PUBLIC_REPO_RELEASE_BRANCH"
+
+    - name: Validate Allowed Source->Target Route
+      run: |
+        repo="$GITHUB_REPOSITORY"
+        base="${{ github.base_ref }}"
+        head="${{ github.head_ref }}"
+
+        if [ "$repo" = "$PRIVATE_REPO" ] && [ "$base" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
+          if [ "$head" != "$PRIVATE_REPO_MAIN_BRANCH" ]; then
+            echo "ERROR: PRs into '$PRIVATE_REPO_RELEASE_BRANCH' must come from '$PRIVATE_REPO_MAIN_BRANCH'."
+            echo "Actual source branch: '$head'"
+            exit 1
+          fi
+          echo "Private release route allowed: $head -> $base"
+          exit 0
+        fi
+
+        if [ "$repo" = "$PUBLIC_REPO" ] && [ "$base" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+          if [ "$head" != "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
+            echo "ERROR: PRs into '$PUBLIC_REPO_RELEASE_BRANCH' must come from '$PUBLIC_REPO_INCOMING_BRANCH'."
+            echo "Actual source branch: '$head'"
+            exit 1
+          fi
+          echo "Public release route allowed: $head -> $base"
+          exit 0
+        fi
+
+        echo "No release-route validation required for this PR context."

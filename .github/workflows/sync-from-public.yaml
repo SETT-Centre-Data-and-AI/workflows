@@ -1,4 +1,4 @@
-name: Sync from Public Repo
+name: Sync from Public
 
 # ===================================================================== #
 # Sync from Public Repo (manual)
@@ -16,9 +16,11 @@ on:
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
 
   sync-from-public:
+    name: Sync Private
     needs: env-config
 
     if: github.repository == needs.env-config.outputs.PRIVATE_REPO
@@ -36,7 +38,7 @@ jobs:
       PRIVATE_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_INCOMING_BRANCH }}
 
       PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
-      REPO_SYNC_TOKEN: ${{ secrets.REPO_SYNC_TOKEN }}
+      MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
       PUBLIC_BRANCH: ${{ github.event.inputs.public_branch }}
 
@@ -52,11 +54,11 @@ jobs:
 
     - name: Check Sync Token
       run: |
-        if [ -z "${REPO_SYNC_TOKEN}" ]; then
-          echo "ERROR: REPO_SYNC_TOKEN is not set or empty in repo secrets."
+        if [ -z "${MANAGEMENT_TOKEN}" ]; then
+          echo "ERROR: MANAGEMENT_TOKEN is not set or empty in repo secrets."
           exit 1
         else
-          echo "Repo sync token is present (value hidden)."
+          echo "Management token is present (value hidden)."
         fi
 
     - name: Checkout Private Main Branch
@@ -68,7 +70,7 @@ jobs:
 
     - name: Fetch Public Branch
       env:
-        TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
         PUBLIC_BRANCH: ${{ env.PUBLIC_BRANCH }}
       run: |
@@ -94,7 +96,7 @@ jobs:
       env:
         INCOMING_BRANCH: ${{ env.PRIVATE_REPO_INCOMING_BRANCH }}
         PRIVATE_REPO: ${{ env.PRIVATE_REPO }}
-        TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         echo "Configuring origin with PAT..."
         git remote set-url origin "https://x-access-token:${TOKEN}@github.com/${PRIVATE_REPO}.git"
@@ -104,7 +106,7 @@ jobs:
 
     - name: Check for Existing PR
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PRIVATE_REPO: ${{ env.PRIVATE_REPO }}
         INCOMING_BRANCH: ${{ env.PRIVATE_REPO_INCOMING_BRANCH }}
         MAIN_BRANCH: ${{ env.PRIVATE_REPO_MAIN_BRANCH }}
@@ -129,7 +131,7 @@ jobs:
 
     - name: Create PR if Needed
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
         PRIVATE_REPO: ${{ env.PRIVATE_REPO }}
         INCOMING_BRANCH: ${{ env.PRIVATE_REPO_INCOMING_BRANCH }}
         MAIN_BRANCH: ${{ env.PRIVATE_REPO_MAIN_BRANCH }}

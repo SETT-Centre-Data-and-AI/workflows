@@ -12,7 +12,7 @@ There is no required runtime package installation for downstream use.
 uv sync --group dev
 ```
 
-3. Development workflow: Edit `.github/workflows/` files and test via `self-orchestrator.yaml` (local calls to your working branch).
+3. Development workflow: edit `.github/workflows/` files and test via `self-orchestrator.yaml` (local calls to the working branch).
 4. When validated, commit changes to a branch and open a PR.
 5. After merge to `main`, create a git tag and release (e.g., `v0.2.0`) — downstream repos will pin to `@release` tag.
 
@@ -20,33 +20,34 @@ uv sync --group dev
 
 Create these as organisation secrets with selected-repository access:
 
-- `REPO_SYNC_TOKEN`
+- `MANAGEMENT_TOKEN`
 - `PYPI_TOKEN`
 
 Notes:
-- `REPO_SYNC_TOKEN` should have minimum scopes required for cross-repo branch sync and PR operations.
+- `MANAGEMENT_TOKEN` should have minimum scopes required for cross-repo branch sync and PR operations.
 - `PYPI_TOKEN` should be scoped to publishing only.
 
-## 3. Create Organisation-Level Variables
+## 3. Configure Non-Secret Settings in Caller Workflow
 
-Set non-sensitive defaults as organisation variables (and allow repo overrides only where needed):
+Set non-secret configuration directly in each downstream repo's `.github/workflows/ci-orchestrator.yaml` using the `with:` block.
 
-- `PRIVATE_REPO`
-- `PRIVATE_REPO_MAIN_BRANCH`
-- `PRIVATE_REPO_RELEASE_BRANCH`
-- `PRIVATE_REPO_INCOMING_BRANCH`
-- `PUBLIC_REPO`
-- `PUBLIC_REPO_INCOMING_BRANCH`
-- `PUBLIC_REPO_RELEASE_BRANCH`
-- `RELEASE_CHECK_REPOS_JSON`
-- `BUILD_SMOKE_PYTHON_VERSION`
-- `TEST_MATRIX_JSON`
-- `VERSION_CHECK_PYTHON_VERSION`
-- `PUBLISH_PYTHON_VERSION`
+Required values:
+- `package-name`
+- `package-slug`
+- `private-repo` and/or `public-repo`
+
+Optional overrides:
+- branch names (`private-repo-main-branch`, `public-repo-release-branch`, etc.)
+- runtime versions (`build-smoke-python-version`, `version-check-python-version`, `publish-python-version`)
+- `test-matrix-json` (compact inline JSON)
+- publish toggle (`publish-on-release: 'false'`)
+
+Optional repo variable fallback:
+- `PUBLISH_ON_RELEASE=true|false`
 
 ## 4. Configure Organisation Rulesets
 
-Configure branch protection/rulesets to require check contexts emitted by your orchestrator jobs.
+Configure branch protection/rulesets to require check contexts emitted by the orchestrator jobs.
 At minimum, require checks that represent:
 
 - Build and test
@@ -58,8 +59,9 @@ At minimum, require checks that represent:
 
 Each downstream repository should only need:
 
-1. A minimal workflow that calls your orchestrator via `uses` and `@main`.
-2. Optional repo-level variables for approved overrides.
-3. No duplicated policy workflow logic.
+1. A minimal workflow that calls the orchestrator via `uses` and `@release`.
+2. Explicit `with:` inputs for package/repo identity.
+3. Optional inline overrides in the same workflow file.
+4. No duplicated policy workflow logic.
 
 See [usage-guide.md](usage-guide.md) for caller workflow examples and [DEPLOYMENT_PATTERNS.md](DEPLOYMENT_PATTERNS.md) for setup patterns by repo type.

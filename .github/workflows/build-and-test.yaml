@@ -6,13 +6,73 @@ name: Build and Test
 # ======================================================================= #
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      package-name:
+        required: false
+        type: string
+      package-slug:
+        required: false
+        type: string
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      private-repo-incoming-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
+      build-smoke-python-version:
+        required: false
+        type: string
+      test-matrix-json:
+        required: false
+        type: string
+      version-check-python-version:
+        required: false
+        type: string
+      publish-python-version:
+        required: false
+        type: string
+      publish-on-release:
+        required: false
+        type: string
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      package-name: ${{ inputs.package-name }}
+      package-slug: ${{ inputs.package-slug }}
+      private-repo: ${{ inputs.private-repo }}
+      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
+      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
+      private-repo-incoming-branch: ${{ inputs.private-repo-incoming-branch }}
+      public-repo: ${{ inputs.public-repo }}
+      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
+      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
+      build-smoke-python-version: ${{ inputs.build-smoke-python-version }}
+      test-matrix-json: ${{ inputs.test-matrix-json }}
+      version-check-python-version: ${{ inputs.version-check-python-version }}
+      publish-python-version: ${{ inputs.publish-python-version }}
+      publish-on-release: ${{ inputs.publish-on-release }}
 
   build-and-smoke-test:
+    name: Smoke Build
     needs: env-config
     if: >
       github.repository == needs.env-config.outputs.PRIVATE_REPO
@@ -32,6 +92,7 @@ jobs:
 
     env:
       PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
+      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
       PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
       PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
 
@@ -49,6 +110,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install uv poetry build pytest
 
+    - name: Validate package inputs
+      run: |
+        if [ -z "$PACKAGE_NAME" ] || [ -z "$PACKAGE_SLUG" ]; then
+          echo "ERROR: package-name and package-slug must be provided in ci-orchestrator workflow inputs."
+          exit 1
+        fi
+
+    - name: Run Pre-Install Script
+      if: hashFiles('.github/workflows/pre-install.sh') != ''
+      run: bash .github/workflows/pre-install.sh
+
     - name: Build Package
       run: |
         rm -rf dist
@@ -57,6 +129,7 @@ jobs:
     - name: Install Package (Poetry)
       run: |
         poetry install
+        poetry run python -m pip show "$PACKAGE_SLUG" > /dev/null
         poetry run python -c "import $PACKAGE_NAME"
 
     - name: Install Package (UV)
@@ -68,10 +141,17 @@ jobs:
           source .venv-uv/bin/activate
         fi
 
+        if ! python -m pip --version >/dev/null 2>&1; then
+          python -m ensurepip --upgrade
+        fi
+        python -m pip install --upgrade pip
+
         uv pip install dist/*.whl
+        python -m pip show "$PACKAGE_SLUG" > /dev/null
         python -c "import $PACKAGE_NAME"
 
   run-tests:
+    name: Test Matrix
     needs: env-config
     if: >
       github.repository == needs.env-config.outputs.PRIVATE_REPO
@@ -88,17 +168,13 @@ jobs:
 
     env:
       PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
+      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
       PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
       PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v5
-
-    - name: Install System Dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
@@ -109,6 +185,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install uv build pytest
+
+    - name: Validate package inputs
+      run: |
+        if [ -z "$PACKAGE_NAME" ] || [ -z "$PACKAGE_SLUG" ]; then
+          echo "ERROR: package-name and package-slug must be provided in ci-orchestrator workflow inputs."
+          exit 1
+        fi
+
+    - name: Run Pre-Install Script
+      if: hashFiles('.github/workflows/pre-install.sh') != ''
+      run: bash .github/workflows/pre-install.sh
 
     - name: Install Package (UV)
       run: |

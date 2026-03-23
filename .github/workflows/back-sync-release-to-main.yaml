@@ -1,4 +1,4 @@
-name: Back Sync Release to Main
+name: Back Sync Release
 
 # ====================================================================== #
 # Back Sync Release to Main
@@ -9,7 +9,17 @@ name: Back Sync Release to Main
 # ====================================================================== #
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
   workflow_dispatch: {}
 
 concurrency:
@@ -18,10 +28,16 @@ concurrency:
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      private-repo: ${{ inputs.private-repo }}
+      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
+      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
     secrets: inherit
 
   back-sync-release-to-main:
+    name: Back Sync
     needs: env-config
     if: >
       github.repository == needs.env-config.outputs.PRIVATE_REPO &&
@@ -44,7 +60,7 @@ jobs:
       PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
       PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
       PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
-      REPO_SYNC_TOKEN: ${{ secrets.REPO_SYNC_TOKEN }}
+      MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
     steps:
     - name: Show Back Sync Context
@@ -62,16 +78,16 @@ jobs:
 
     - name: Check Sync Token
       run: |
-        if [ -z "${REPO_SYNC_TOKEN}" ]; then
-          echo "ERROR: REPO_SYNC_TOKEN is not set or empty in repo secrets."
+        if [ -z "${MANAGEMENT_TOKEN}" ]; then
+          echo "ERROR: MANAGEMENT_TOKEN is not set or empty in repo secrets."
           exit 1
         else
-          echo "Repo sync token is present (value hidden)."
+          echo "Management token is present (value hidden)."
         fi
 
     - name: Check if back-sync is needed
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         ahead_by=$(gh api \
           "repos/${PRIVATE_REPO}/compare/${PRIVATE_REPO_MAIN_BRANCH}...${PRIVATE_REPO_RELEASE_BRANCH}" \
@@ -90,7 +106,7 @@ jobs:
     - name: Check for Existing Open Back-Sync PR
       if: env.SKIP_SYNC != 'true'
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         existing_pr=$(gh pr list \
           --repo "$PRIVATE_REPO" \
@@ -111,7 +127,7 @@ jobs:
     - name: Create Back-Sync PR if Needed
       if: env.SKIP_SYNC != 'true'
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         if [ -n "${PR_NUMBER:-}" ]; then
           echo "Reusing existing PR #$PR_NUMBER."
@@ -140,7 +156,7 @@ jobs:
     - name: Validate PR Mergeability
       if: env.SKIP_SYNC != 'true'
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         if [ -z "${PR_NUMBER:-}" ]; then
           echo "ERROR: PR_NUMBER is empty. Cannot continue."
@@ -187,7 +203,7 @@ jobs:
     - name: Enable Auto-Merge (Merge Commit)
       if: env.SKIP_SYNC != 'true'
       env:
-        GH_TOKEN: ${{ env.REPO_SYNC_TOKEN }}
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
         if ! gh pr merge "$PR_NUMBER" \
           --repo "$PRIVATE_REPO" \

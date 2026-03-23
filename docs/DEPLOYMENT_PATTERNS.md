@@ -1,6 +1,6 @@
 # Deployment Patterns
 
-Choose the pattern that matches your repository's lifecycle and publication model.
+Choose the pattern that matches the repository lifecycle and publication model.
 
 ## Pattern 1: Private-Only Repository
 
@@ -10,7 +10,7 @@ Choose the pattern that matches your repository's lifecycle and publication mode
 
 **Workflows triggered**:
 - `build-and-test`: PR to main
-- `ensure-private-release-from-main`: PR to release branch
+- `ensure-release-source`: PR to release branch
 - `validate-version-bump`: PR to release branch
 
 **No sync/publish to public repo.**
@@ -19,17 +19,23 @@ Choose the pattern that matches your repository's lifecycle and publication mode
 
 1. Copy [downstream-private-only-ci-orchestrator.yaml](examples/downstream-private-only-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. Set organisation or repository variables:
+2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
    ```
-   PRIVATE_REPO=your-org/your-private-repo
-   PRIVATE_REPO_MAIN_BRANCH=main
-   PRIVATE_REPO_RELEASE_BRANCH=release
+   private-repo: your-org/your-private-repo
+   package-name: your_package
+   package-slug: your-package
+   public-repo: ''
+   ```
+
+   Optional overrides only if needed:
+   ```
+   test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.13"}]}'
    ```
 
 3. No secrets needed (no cross-repo sync).
 
 4. Branch protection for `release`:
-   - Require: `enforce-private-release-source`
+   - Require: `ensure-release-source`
    - Require: `validate-version-bump`
 
 ### Example Flow
@@ -40,7 +46,7 @@ Feature branch → PR to main
 Merge to main
 
 main → Create PR to release
-    ↓ (check: enforce-private-release-source passes, validate-version-bump passes)
+   ↓ (check: ensure-release-source passes, validate-version-bump passes)
 Merge to release
     ↓
 (end; no further sync)
@@ -54,8 +60,8 @@ Merge to release
 
 **Workflows triggered**:
 - Private main: `build-and-test`
-- Private release: `ensure-private-release-from-main`, `validate-version-bump`, `back-sync-release-to-main`, `sync-to-public`
-- Public release: `ensure-public-release-from-incoming`, `validate-version-bump`, `publish-to-pypi`
+- Private release: `ensure-release-source`, `validate-version-bump`, `back-sync-release-to-main`, `sync-to-public`
+- Public release: `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
 
 **Mandatory for all adopters** unless configured otherwise.
 
@@ -65,33 +71,41 @@ Merge to release
 
 1. Copy [downstream-private-to-public-ci-orchestrator.yaml](examples/downstream-private-to-public-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. Set variables:
+2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
    ```
-   PRIVATE_REPO=your-org/your-private-repo
-   PUBLIC_REPO=your-org/your-public-repo
-   PRIVATE_REPO_MAIN_BRANCH=main
-   PRIVATE_REPO_RELEASE_BRANCH=release
-   PUBLIC_REPO_INCOMING_BRANCH=incoming_from_private
-   PUBLIC_REPO_RELEASE_BRANCH=release
+   private-repo: your-org/your-private-repo
+   public-repo: your-org/your-public-repo
+   package-name: your_package
+   package-slug: your-package
+   ```
+
+   Optional overrides only if needed:
+   ```
+   test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.13"}]}'
    ```
 
 3. Grant secrets:
-   - `REPO_SYNC_TOKEN` (needs read/write on both repos)
+   - `MANAGEMENT_TOKEN` (needs read/write on both repos)
 
 4. Branch protection:
    - `main`: require `build-and-test`
-   - `release`: require `enforce-private-release-source`, `validate-version-bump`
+   - `release`: require `ensure-release-source`, `validate-version-bump`
 
 **Public Repository**:
 
 1. Copy [downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. Set variables:
+2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
    ```
-   PUBLIC_REPO=your-org/your-public-repo
-   PUBLIC_REPO_INCOMING_BRANCH=incoming_from_private
-   PUBLIC_REPO_RELEASE_BRANCH=release
-   RELEASE_CHECK_REPOS_JSON=["your-org/your-public-repo"]
+   public-repo: your-org/your-public-repo
+   package-name: your_package
+   package-slug: your-package
+   private-repo: ''
+   ```
+
+   Optional overrides only if needed:
+   ```
+   test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.13"}]}'
    ```
    (Do not set PRIVATE_REPO; workflow will skip private-only checks.)
 
@@ -99,7 +113,7 @@ Merge to release
    - `PYPI_TOKEN` (for publishing)
 
 4. Branch protection:
-   - `release`: require `ensure-public-release-from-incoming`, `validate-version-bump`, `publish-to-pypi`
+   - `release`: require `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
 
 ### Example Flow
 
@@ -109,7 +123,7 @@ Private main PR
 Merge to private main
 
 private main → PR to private release
-    ↓ (checks: enforce-private-release-source, validate-version-bump pass)
+   ↓ (checks: ensure-release-source, validate-version-bump pass)
 Merge to private release
     ↓ (auto)
   ├─ back-sync: create PR release→main in private repo
@@ -118,10 +132,10 @@ Merge to private release
        └─ Create PR public incoming_from_private→release
 
 public incoming PR
-    ↓ (checks: ensure-public-release-from-incoming, validate-version-bump pass)
+      ↓ (checks: ensure-release-source, validate-version-bump pass)
 Merge to public release
     ↓ (auto)
-  └─ publish-to-pypi: build and upload to PyPI
+   └─ publish-to-pypi: build and upload to PyPI (if publish-on-release/PUBLISH_ON_RELEASE is true)
 ```
 
 ## Pattern 3: Public-Only Repository
@@ -132,7 +146,7 @@ Merge to public release
 
 **Workflows triggered**:
 - `build-and-test` (if configured for public repo)
-- `ensure-public-release-from-incoming`
+- `ensure-release-source`
 - `validate-version-bump`
 - `publish-to-pypi`
 
@@ -140,24 +154,30 @@ Merge to public release
 
 1. Copy [downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. Set variables:
+2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
    ```
-   PUBLIC_REPO=your-org/your-public-repo
-   PUBLIC_REPO_RELEASE_BRANCH=release
-   RELEASE_CHECK_REPOS_JSON=["your-org/your-public-repo"]
+   public-repo: your-org/your-public-repo
+   package-name: your_package
+   package-slug: your-package
+   private-repo: ''
+   ```
+
+   Optional overrides only if needed:
+   ```
+   test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.13"}]}'
    ```
 
 3. Grant secrets:
    - `PYPI_TOKEN`
 
 4. Branch protection:
-   - `release`: require `ensure-public-release-from-incoming`, `validate-version-bump`, `publish-to-pypi`
+   - `release`: require `ensure-release-source`, `validate-version-bump`, `publish-to-pypi`
 
 ### Note
 
-This pattern bypasses the private-to-public sync workflow. Use only if you have no private version.
+This pattern bypasses the private-to-public sync workflow. Use only when no private version exists.
 
-## Choosing Your Pattern
+## Choosing A Pattern
 
 | Pattern | Private Repo | Public Repo | Sync | Publishing | Use Case |
 |---------|:---:|:---:|:---:|:---:|----------|
@@ -170,49 +190,49 @@ This pattern bypasses the private-to-public sync workflow. Use only if you have 
 **Starting with Pattern 1 → Pattern 2**:
 
 1. Create a public repository (e.g., `your-org/your-package`)
-2. In private repo config, set `PUBLIC_REPO=your-org/your-package`
+2. In private repo `ci-orchestrator.yaml`, set `public-repo: your-org/your-package`
 3. Seed public repo with initial commit
-4. Grant `REPO_SYNC_TOKEN` in org secrets
+4. Grant `MANAGEMENT_TOKEN` in org secrets
 5. Trigger manual `back-sync` and `sync-to-public` workflows
 6. Add entry workflow to public repo
 7. Test full sync flow before merging to private release
 
 **Temporarily Disabling Pattern 2 → Pattern 1**:
 
-1. In private repo, comment out `PUBLIC_REPO` variable (or set to empty)
+1. In private repo, set `public-repo: ''` in the caller workflow
 2. Orchestrator will skip `sync-to-public` steps automatically
-3. Restore variable when ready to resume
+3. Restore `public-repo` input when ready to resume
 
-## Repository-Level Variable Overrides
+## Caller Workflow Overrides
 
-If a downstream repo needs to deviate from org defaults, set repo-level variables:
-
-**GitHub UI**: Repository Settings → Secrets and variables → Variables
+If a downstream repo needs custom behavior, set overrides in `.github/workflows/ci-orchestrator.yaml`:
 
 ```
 # Example: Custom branch names
-PRIVATE_REPO_MAIN_BRANCH=develop
-PRIVATE_REPO_RELEASE_BRANCH=stable
+private-repo-main-branch: develop
+private-repo-release-branch: stable
+
+# Required package naming
+package-name: your_package
+package-slug: your-package
+
+# Example: Custom matrix inline JSON
+test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.12"}]}'
 ```
 
-**Via API**:
-```bash
-gh variable set PRIVATE_REPO_MAIN_BRANCH -b develop -R your-org/your-repo
-```
-
-Override values take precedence over org defaults.
+Workflow inputs take precedence over built-in defaults.
 
 ## Troubleshooting Deployment Patterns
 
 ### "Why isn't sync-to-public running?"
 
-- Confirm `PUBLIC_REPO` variable is set
-- Check `REPO_SYNC_TOKEN` is granted to both repos
+- Confirm `public-repo` input is set in `ci-orchestrator.yaml`
+- Check `MANAGEMENT_TOKEN` is granted to both repos
 - Verify merge was to private release (not another branch)
 
 ### "How do I skip sync for a single release?"
 
-- Temporarily remove `REPO_SYNC_TOKEN` access
+- Temporarily remove `MANAGEMENT_TOKEN` access
 - Or pin private repo to a tag version that does not call sync (advanced)
 
 ### "Can I have multiple public repos?"

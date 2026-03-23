@@ -33,7 +33,7 @@ git push origin test/build-and-test-route
 **Trigger**: PR to `release` _from `main`_
 
 ```bash
-# Ensure you are on main with latest commit
+# Ensure the branch is based on the latest `main`
 git checkout main
 git pull origin main
 
@@ -45,11 +45,11 @@ git commit -m "chore: bump version"
 git push origin release-pr-from-main-success
 
 # Open PR against release branch via GitHub UI
-# Expected: enforce-private-release-source check PASSES
+# Expected: ensure-release-source check PASSES
 ```
 
 **Expected behavior**:
-- Check `enforce-private-release-source` appears in PR
+- Check `ensure-release-source` appears in PR
 - Check **passes** (green) because head ref is `main`
 
 ### 3. Private Release Source Policy (Failure Case)
@@ -65,11 +65,11 @@ git commit -m "feat: test"
 git push origin test/invalid-release-source
 
 # Open PR against release branch via GitHub UI
-# Expected: enforce-private-release-source check FAILS
+# Expected: ensure-release-source check FAILS
 ```
 
 **Expected behavior**:
-- Check `enforce-private-release-source` appears in PR
+- Check `ensure-release-source` appears in PR
 - Check **fails** (red) because head ref is not `main`
 - PR cannot be merged while check fails
 
@@ -155,13 +155,13 @@ git push origin test/full-validation
 # Expected: ✓ passes
 
 # Open PR from test/full-validation to release (tests release policy)
-# Observe: enforce-private-release-source check
+# Observe: ensure-release-source check
 # Expected: ✗ fails (head is not main)
 
 # Close PR, then:
 # Merge test branch to main first
 # Create new PR from main to release
-# Observe: enforce-private-release-source check
+# Observe: ensure-release-source check
 # Expected: ✓ passes
 ```
 
@@ -180,7 +180,7 @@ Event: pull_request
       Base branch is PRIVATE_REPO_RELEASE_BRANCH?
         Yes:
           Action is opened|reopened|synchronize?
-            Yes: run ensure-private-release-from-main, validate-version-bump
+            Yes: run ensure-release-source, validate-version-bump
           Action is closed AND merged?
             Yes: run back-sync-release-to-main, sync-to-public
   Repository is PUBLIC_REPO?
@@ -188,7 +188,7 @@ Event: pull_request
       Base branch is PUBLIC_REPO_RELEASE_BRANCH?
         Yes:
           Action is opened|reopened|synchronize?
-            Yes: run ensure-public-release-from-incoming, validate-version-bump
+            Yes: run ensure-release-source, validate-version-bump
 
 Event: workflow_dispatch
   Repository is PRIVATE_REPO?
@@ -198,7 +198,7 @@ Event: workflow_dispatch
   Repository is PUBLIC_REPO?
     Yes:
       Ref is PUBLIC_REPO_RELEASE_BRANCH?
-        Yes: run publish-to-pypi
+        Yes and publish toggle enabled: run publish-to-pypi
 ```
 
 ## Before Releasing Workflow Changes
@@ -207,7 +207,7 @@ Event: workflow_dispatch
 2. **Run the validation checklist above** on that branch
 3. **Verify all checks appear and produce expected results**
 4. **Merge test branch to main only after validation passes**
-5. **Tag release when you're confident** (optional; use `@main` for immediate rollout)
+5. **Tag release when validation is complete** (optional; use `@main` for immediate rollout)
 
 ## Debugging Failed Checks
 
@@ -222,11 +222,11 @@ Event: workflow_dispatch
 - Click "Details" on the check
 - Review workflow run logs
 - Trace the issue to the specific step
-- Fix in your branch and push again
+- Fix in the branch and push again
 
 ### Skip check temporarily for testing
 
-Add a `if: false` condition to the workflow step in your test branch, then remove for final release:
+Add an `if: false` condition to the workflow step in the test branch, then remove it before final release:
 
 ```yaml
 - name: My Step

@@ -115,3 +115,4 @@ tmp*/
 
 
 # Project Keep
+!repo_template/.github/workflows/ci-orchestrator.yaml

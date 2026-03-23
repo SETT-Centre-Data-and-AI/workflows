@@ -1,4 +1,4 @@
-name: Workflow Orchestrator
+name: CI Router
 
 # =================================================================== #
 # Workflow Orchestrator
@@ -29,10 +29,48 @@ on:
       pr-merged:
         required: false
         type: boolean
-  pull_request:
-    branches: ['**']
-    types: [opened, reopened, synchronize, closed]
-  workflow_dispatch: {}
+      package-name:
+        required: false
+        type: string
+      package-slug:
+        required: false
+        type: string
+      private-repo:
+        required: false
+        type: string
+      private-repo-main-branch:
+        required: false
+        type: string
+      private-repo-release-branch:
+        required: false
+        type: string
+      private-repo-incoming-branch:
+        required: false
+        type: string
+      public-repo:
+        required: false
+        type: string
+      public-repo-release-branch:
+        required: false
+        type: string
+      public-repo-incoming-branch:
+        required: false
+        type: string
+      build-smoke-python-version:
+        required: false
+        type: string
+      test-matrix-json:
+        required: false
+        type: string
+      version-check-python-version:
+        required: false
+        type: string
+      publish-python-version:
+        required: false
+        type: string
+      publish-on-release:
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -40,15 +78,31 @@ permissions:
 
 jobs:
   env-config:
+    name: Resolve Config
     uses: ./.github/workflows/config.yaml
+    with:
+      package-name: ${{ inputs.package-name }}
+      package-slug: ${{ inputs.package-slug }}
+      private-repo: ${{ inputs.private-repo }}
+      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
+      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
+      private-repo-incoming-branch: ${{ inputs.private-repo-incoming-branch }}
+      public-repo: ${{ inputs.public-repo }}
+      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
+      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
+      build-smoke-python-version: ${{ inputs.build-smoke-python-version }}
+      test-matrix-json: ${{ inputs.test-matrix-json }}
+      version-check-python-version: ${{ inputs.version-check-python-version }}
+      publish-python-version: ${{ inputs.publish-python-version }}
+      publish-on-release: ${{ inputs.publish-on-release }}
 
   route:
+    name: Route
     needs: env-config
     runs-on: ubuntu-latest
     outputs:
       RUN_BUILD_AND_TEST: ${{ steps.route.outputs.RUN_BUILD_AND_TEST }}
-      RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN: ${{ steps.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN }}
-      RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING: ${{ steps.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING }}
+      RUN_ENSURE_RELEASE_SOURCE: ${{ steps.route.outputs.RUN_ENSURE_RELEASE_SOURCE }}
       RUN_PRE_RELEASE_VERSION_CHECK: ${{ steps.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK }}
       RUN_BACK_SYNC: ${{ steps.route.outputs.RUN_BACK_SYNC }}
       RUN_SYNC_TO_PUBLIC: ${{ steps.route.outputs.RUN_SYNC_TO_PUBLIC }}
@@ -65,6 +119,7 @@ jobs:
       PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+      PUBLISH_ON_RELEASE: ${{ needs.env-config.outputs.PUBLISH_ON_RELEASE }}
       CALLER_EVENT_NAME: ${{ inputs.event-name }}
       CALLER_EVENT_ACTION: ${{ inputs.event-action }}
       CALLER_BASE_REF: ${{ inputs.base-ref }}
@@ -116,8 +171,7 @@ jobs:
         PR_MERGED="${CALLER_PR_MERGED:-$CTX_PR_MERGED}"
 
         RUN_BUILD_AND_TEST=false
-        RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=false
-        RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=false
+        RUN_ENSURE_RELEASE_SOURCE=false
         RUN_PRE_RELEASE_VERSION_CHECK=false
         RUN_BACK_SYNC=false
         RUN_SYNC_TO_PUBLIC=false
@@ -128,7 +182,7 @@ jobs:
             RUN_BACK_SYNC=true
             RUN_SYNC_TO_PUBLIC=true
           fi
-          if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
+          if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ] && [ "$PUBLISH_ON_RELEASE" = "true" ]; then
             RUN_PUBLISH_TO_PYPI=true
           fi
         fi
@@ -142,7 +196,7 @@ jobs:
 
           if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$BASE_REF" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
             if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
-              RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=true
+              RUN_ENSURE_RELEASE_SOURCE=true
               RUN_PRE_RELEASE_VERSION_CHECK=true
             fi
 
@@ -154,19 +208,18 @@ jobs:
 
           if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$BASE_REF" = "$PUBLIC_REPO_RELEASE_BRANCH" ]; then
             if [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "synchronize" ]; then
-              RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=true
+              RUN_ENSURE_RELEASE_SOURCE=true
               RUN_PRE_RELEASE_VERSION_CHECK=true
             fi
 
-            if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PUBLIC_REPO_INCOMING_BRANCH" ]; then
+            if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PUBLIC_REPO_INCOMING_BRANCH" ] && [ "$PUBLISH_ON_RELEASE" = "true" ]; then
               RUN_PUBLISH_TO_PYPI=true
             fi
           fi
         fi
 
         echo "RUN_BUILD_AND_TEST=$RUN_BUILD_AND_TEST" >> "$GITHUB_OUTPUT"
-        echo "RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN=$RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN" >> "$GITHUB_OUTPUT"
-        echo "RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING=$RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING" >> "$GITHUB_OUTPUT"
+        echo "RUN_ENSURE_RELEASE_SOURCE=$RUN_ENSURE_RELEASE_SOURCE" >> "$GITHUB_OUTPUT"
         echo "RUN_PRE_RELEASE_VERSION_CHECK=$RUN_PRE_RELEASE_VERSION_CHECK" >> "$GITHUB_OUTPUT"
         echo "RUN_BACK_SYNC=$RUN_BACK_SYNC" >> "$GITHUB_OUTPUT"
         echo "RUN_SYNC_TO_PUBLIC=$RUN_SYNC_TO_PUBLIC" >> "$GITHUB_OUTPUT"
@@ -176,47 +229,87 @@ jobs:
       run: |
         echo "Routed workflows for this event:"
         echo "  build-and-test:                       ${{ steps.route.outputs.RUN_BUILD_AND_TEST }}"
-        echo "  ensure-private-release-from-main:     ${{ steps.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN }}"
-        echo "  ensure-public-release-from-incoming:  ${{ steps.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING }}"
+        echo "  ensure-release-source:                ${{ steps.route.outputs.RUN_ENSURE_RELEASE_SOURCE }}"
         echo "  pre-release-version-check:            ${{ steps.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK }}"
         echo "  back-sync-release-to-main:            ${{ steps.route.outputs.RUN_BACK_SYNC }}"
         echo "  sync-to-public:                       ${{ steps.route.outputs.RUN_SYNC_TO_PUBLIC }}"
         echo "  publish-to-pypi:                      ${{ steps.route.outputs.RUN_PUBLISH_TO_PYPI }}"
 
   run-build-and-test:
+    name: Build and Test
     needs: [env-config, route]
     if: needs.route.outputs.RUN_BUILD_AND_TEST == 'true'
     uses: ./.github/workflows/build-and-test.yaml
+    with:
+      package-name: ${{ needs.env-config.outputs.PACKAGE_NAME }}
+      package-slug: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
+      private-repo: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      private-repo-main-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      private-repo-release-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      private-repo-incoming-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_INCOMING_BRANCH }}
+      public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      public-repo-incoming-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+      build-smoke-python-version: ${{ needs.env-config.outputs.BUILD_SMOKE_PYTHON_VERSION }}
+      test-matrix-json: ${{ needs.env-config.outputs.TEST_MATRIX_JSON }}
+      version-check-python-version: ${{ needs.env-config.outputs.VERSION_CHECK_PYTHON_VERSION }}
+      publish-python-version: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
+      publish-on-release: ${{ needs.env-config.outputs.PUBLISH_ON_RELEASE }}
 
-  run-ensure-private-release-from-main:
+  run-ensure-release-source:
+    name: Validate Source
     needs: [env-config, route]
-    if: needs.route.outputs.RUN_ENSURE_PRIVATE_RELEASE_FROM_MAIN == 'true'
-    uses: ./.github/workflows/ensure-private-release-from-main.yaml
-
-  run-ensure-public-release-from-incoming:
-    needs: [env-config, route]
-    if: needs.route.outputs.RUN_ENSURE_PUBLIC_RELEASE_FROM_INCOMING == 'true'
-    uses: ./.github/workflows/ensure-public-release-from-incoming.yaml
+    if: needs.route.outputs.RUN_ENSURE_RELEASE_SOURCE == 'true'
+    uses: ./.github/workflows/ensure-release-source.yaml
+    with:
+      private-repo: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      private-repo-main-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      private-repo-release-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      public-repo-incoming-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
 
   run-pre-release-version-check:
+    name: Check Version
     needs: [env-config, route]
     if: needs.route.outputs.RUN_PRE_RELEASE_VERSION_CHECK == 'true'
     uses: ./.github/workflows/pre-release-version-check.yaml
+    with:
+      version-check-python-version: ${{ needs.env-config.outputs.VERSION_CHECK_PYTHON_VERSION }}
 
   run-back-sync-release-to-main:
+    name: Back Sync
     needs: [env-config, route]
     if: needs.route.outputs.RUN_BACK_SYNC == 'true'
     uses: ./.github/workflows/back-sync-release-to-main.yaml
+    with:
+      private-repo: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      private-repo-main-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      private-repo-release-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
     secrets: inherit
 
   run-sync-to-public:
+    name: Sync Public
     needs: [env-config, route]
     if: needs.route.outputs.RUN_SYNC_TO_PUBLIC == 'true'
     uses: ./.github/workflows/sync-to-public.yaml
+    with:
+      private-repo: ${{ needs.env-config.outputs.PRIVATE_REPO }}
+      private-repo-release-branch: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      public-repo-incoming-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
     secrets: inherit
 
   run-publish-to-pypi:
+    name: Publish
     needs: [env-config, route]
     if: needs.route.outputs.RUN_PUBLISH_TO_PYPI == 'true'
     uses: ./.github/workflows/publish-to-pypi.yaml
+    with:
+      package-name: ${{ needs.env-config.outputs.PACKAGE_NAME }}
+      package-slug: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
+      public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
+      publish-python-version: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
     secrets: inherit

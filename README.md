@@ -16,8 +16,7 @@ This repository is the orchestration control plane for adopter repositories:
 
 - Orchestrator entrypoint: [.github/workflows/workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)
 - Centralised config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
-- Policy workflow: [.github/workflows/ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)
-- Policy workflow: [.github/workflows/ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)
+- Policy workflow: [.github/workflows/ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
 - Policy workflow: [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
 - Promotion workflow: [.github/workflows/back-sync-release-to-main.yaml](.github/workflows/back-sync-release-to-main.yaml)
 - Promotion workflow: [.github/workflows/sync-to-public.yaml](.github/workflows/sync-to-public.yaml)
@@ -30,14 +29,16 @@ This repository is the orchestration control plane for adopter repositories:
 - [Organisation setup and rulesets](docs/ORG_SETUP_GUIDE.md)
 - [Deployment patterns](docs/DEPLOYMENT_PATTERNS.md)
 - [Testbed validation](docs/TESTBED.md)
-- [Templates for downstream adopters](templates/) — Copyable starter pack with setup script
+- [Templates for downstream adopters](repo_template/) — Copyable starter pack
 
 ## Rollout Model
 
 1. Keep this repository as the single source of orchestration logic.
 2. In each downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
-3. Enforce required status checks with organisation rulesets.
-4. Manage secrets at organisation scope and non-sensitive defaults at organisation variable scope.
+3. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
+4. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
+5. Enforce required status checks with organisation rulesets.
+6. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
 
 **Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
 
@@ -49,9 +50,9 @@ Default: Use `@release` tag for production.
 - `@release` — stable, tested version
 - `@main` — development version (use only in this repo during development)
 
-**For downstream repos**: Copy one of the starter templates from [templates/](templates/) and follow [templates/README.md](templates/README.md).
+For downstream repositories: copy [repo_template/.github/workflows](repo_template/.github/workflows) into the repository root and remove the outer `repo_template` folder.
 
-Quick start: `bash <(curl -fsSL https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/templates/setup.sh) private-only`
+Common case: set `private-repo`, `public-repo`, `package-name`, and `package-slug` in the caller workflow inputs. If needed, set `test-matrix-json` as inline compact JSON.
 
 ## Dispatch Map
 
@@ -68,11 +69,8 @@ Quick start: `bash <(curl -fsSL https://raw.githubusercontent.com/SETT-Centre-Da
 ### [.github/workflows/build-and-test.yaml](.github/workflows/build-and-test.yaml)
 Purpose: Build package and run smoke and matrix tests.
 
-### [.github/workflows/ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)
-Purpose: Enforce private release PR source branch policy.
-
-### [.github/workflows/ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)
-Purpose: Enforce public release PR source branch policy.
+### [.github/workflows/ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
+Purpose: Enforce allowed release PR source branch policy for both private and public routes.
 
 ### [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
 Purpose: Ensure version bump for release PRs.

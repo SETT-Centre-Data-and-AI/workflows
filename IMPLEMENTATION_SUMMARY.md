@@ -8,29 +8,28 @@
 
 #### Core Orchestrator
 - **[workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)**: Main routing control plane
-  - Listens to PR events and manual dispatches
+  - Callable reusable workflow invoked by entry workflows
   - Routes to specific validation and promotion workflows
-  - Supports direct repo execution and reusable `workflow_call` from downstream repos
+  - Supports `workflow_call` from this repo and downstream repos
   - Accepts caller context (event type, branch names, merge status) so downstream repos can invoke centrally
 
 - **[self-orchestrator.yaml](.github/workflows/self-orchestrator.yaml)**: Development entry point
   - This repository uses its own workflows during development
+  - Acts as this repo's only direct PR/manual entry workflow
   - Calls local `workflow-orchestrator.yaml` instead of published versions
   - Enables testing workflow changes before release
 
 - **[config.yaml](.github/workflows/config.yaml)**: Centralised policy configuration
-  - Three-layer resolution: workflow inputs → org variables → built-in defaults
+  - Two-layer resolution: workflow inputs → built-in defaults
   - Exports all configuration for reuse across workflows
-  - Fully parameterizable for org defaults with per-repo overrides
+  - Fully parameterizable per downstream repo via caller workflow inputs
 
 #### Policy Gates
-- **[ensure-private-release-from-main.yaml](.github/workflows/ensure-private-release-from-main.yaml)**
-  - Enforces private release PRs must originate from main branch
-  - **Required status check**: `enforce-private-release-source`
-
-- **[ensure-public-release-from-incoming.yaml](.github/workflows/ensure-public-release-from-incoming.yaml)**
-  - Enforces public release PRs must originate from designated incoming branch
-  - **Required status check**: `enforce-public-release-source`
+- **[ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)**
+  - Enforces release PR source route policy:
+    - private release requires `main -> release`
+    - public release requires `incoming_from_private -> release`
+  - **Required status check**: `ensure-release-source`
 
 - **[pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)**
   - Validates version bump in `pyproject.toml` when targeting release branches
@@ -59,7 +58,7 @@
 | Guide | Purpose | Audience |
 |-------|---------|----------|
 | [README.md](README.md) | Project overview and quick links | Everyone |
-| [installation-guide.md](docs/installation-guide.md) | One-time org setup (secrets, variables, rulesets) | Org admins |
+| [installation-guide.md](docs/installation-guide.md) | One-time org setup (secrets, rulesets) | Org admins |
 | [usage-guide.md](docs/usage-guide.md) | How to call this orchestrator from downstream repos | Repository maintainers |
 | [ORG_SETUP_GUIDE.md](docs/ORG_SETUP_GUIDE.md) | Detailed ruleset configuration and branch protection | Org admins / DevOps |
 | [DEPLOYMENT_PATTERNS.md](docs/DEPLOYMENT_PATTERNS.md) | Setup patterns for private-only, private→public, public-only repos | Repository teams |
@@ -72,11 +71,10 @@
   - [downstream-private-only-ci-orchestrator.yaml](docs/examples/downstream-private-only-ci-orchestrator.yaml) — Private-only repo
   - [downstream-private-to-public-ci-orchestrator.yaml](docs/examples/downstream-private-to-public-ci-orchestrator.yaml) — Private-to-public repo
 
-- **[templates/](templates/)** — Copyable starter package for downstream adopters
-  - [templates/setup.sh](templates/setup.sh) — Automated setup script
-  - [templates/repo-variables.example.env](templates/repo-variables.example.env) — Repository variable defaults
-  - [templates/org-variables.example.env](templates/org-variables.example.env) — Organisation variable reference
-  - [templates/README.md](templates/README.md) — Quick reference guide
+- **[repo_template/](repo_template/)** — Copyable starter package for downstream adopters
+  - [repo_template/.github/workflows/ci-orchestrator.yaml](repo_template/.github/workflows/ci-orchestrator.yaml) — Copyable caller workflow
+  - [repo_template/.github/workflows/pre-install.sh](repo_template/.github/workflows/pre-install.sh) — Optional custom setup hook
+  - [repo_template/.github/workflows/README.md](repo_template/.github/workflows/README.md) — Copy instructions for the folder
 
 ---
 
@@ -89,7 +87,7 @@ Downstream Repo Event
     ↓
 workflow_call: workflow-orchestrator.yaml@release   ← Stable release tag
     ↓
-  route job reads org/repo variables
+  route job reads resolved workflow inputs/defaults
     ↓
   route job evaluates event conditions
     ↓
@@ -100,30 +98,27 @@ workflow_call: workflow-orchestrator.yaml@release   ← Stable release tag
 Workflows execute with inherited secrets + config
 ```
 
-### Variable Resolution
+### Configuration Resolution
 
 ```
 Downstream repo calls config.yaml with optional inputs
     ↓
   inputs provided?
     Yes → Use it
-    No  → Check org variables
-      Found?
-        Yes → Use it
-        No  → Use built-in default
+    No  → Use built-in default
 ```
 
 ### Configuration Scope
 
 **Secrets** (sensitive, org-wide with per-repo access):
-- `REPO_SYNC_TOKEN` — cross-repo sync
+- `MANAGEMENT_TOKEN` — cross-repo sync
 - `PYPI_TOKEN` — PyPI publishing
 
-**Variables** (org defaults, repo overrides allowed):
-- `PRIVATE_REPO`, `PUBLIC_REPO`
-- Branch names (main, release, incoming)
-- Python versions
-- Test matrix
+**Non-secrets** (in caller workflow `with:` inputs):
+- Repository identity and branch names
+- Package import/distribution names
+- Python runtime overrides
+- Optional test matrix JSON
 
 ---
 
@@ -138,7 +133,7 @@ Workflows in this repository use **self-orchestrator** for testing:
 git checkout -b feat/my-workflow-change
 # Edit .github/workflows/...
 
-# Self-orchestrator automatically tests your changes
+# Self-orchestrator automatically tests workflow changes
 # (opens PR, self-orchestrator.yaml calls local workflows)
 git commit -am "feat: ..."
 git push origin feat/my-workflow-change
@@ -163,13 +158,12 @@ git push origin v0.2.0
 ```bash
 # 1. Create org secrets
 GitHub UI → Organisation Settings → Secrets and variables → Secrets
-  • Add REPO_SYNC_TOKEN (PAT with repo access)
+  • Add MANAGEMENT_TOKEN (PAT with repo access)
   • Add PYPI_TOKEN (PyPI publish token)
 
-# 2. Create org variables
-GitHub UI → Organisation Settings → Secrets and variables → Variables
-  • Add PRIVATE_REPO, PUBLIC_REPO, branch names, version matrix
-  # Template is in docs/ORG_SETUP_GUIDE.md
+# 2. Configure downstream caller workflow inputs
+# Add package/repo identity values in .github/workflows/ci-orchestrator.yaml
+# Add optional branch/runtime/test-matrix overrides only where needed
 
 # 3. Configure rulesets
 GitHub UI → Organisation Settings → Rulesets
@@ -178,23 +172,18 @@ GitHub UI → Organisation Settings → Rulesets
 
 ### 3. Per-Repository Setup (Repeatable)
 
-**For each adopter repo**, use templates for quickest setup:
+**For each adopter repo**, copy the template folder for quickest setup:
 
 ```bash
-# Option A: Automatic (recommended)
-bash <(curl -fsSL https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/templates/setup.sh) private-only
-
-# Option B: Manual
-mkdir -p .github/workflows
-curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/docs/examples/downstream-ci-orchestrator.yaml \
-  > .github/workflows/ci-orchestrator.yaml
-git add .github/workflows/ci-orchestrator.yaml
+# Copy repo_template/.github/workflows into the repository root,
+# then remove the outer `repo_template` folder so files end up under .github/workflows.
+git add .github/workflows/ci-orchestrator.yaml .github/workflows/pre-install.sh
 git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 
 # Share access to required secrets
 GitHub UI → Repository Settings → Secrets and variables
-  # Grant access to REPO_SYNC_TOKEN (if using sync)
+  # Grant access to MANAGEMENT_TOKEN (if using sync)
   # Grant access to PYPI_TOKEN (if publishing)
 ```
 
@@ -213,7 +202,7 @@ GitHub UI → Repository Settings → Secrets and variables
 | Self-orchestrator for development | Workflows test themselves; development uses local workflows before release |
 | Downstream use `@release` tag | Stable versions; org rolls out tested changes by releasing new tags |
 | Centralised routing logic | Single control plane prevents drift; easier to audit |
-| Config via org variables | DRY principle; reduce duplication across repos |
+| Config via caller workflow inputs | Keep behavior visible in code per repo |
 | Mandatory private→public pipeline | Enforces consistent release flow; easy opt-out via config |
 | Secrets at org scope | Fewer secrets to manage; better auditability |
 | Templates for adopters | Fast onboarding; less copy-paste error |
@@ -243,14 +232,14 @@ GitHub UI → Repository Settings → Secrets and variables
 
 ---
 
-## Next Steps (for You)
+## Next Steps
 
 1. **Review** [ORG_SETUP_GUIDE.md](docs/ORG_SETUP_GUIDE.md) — decide on branch protection strategy
 2. **Identify** first 1-2 pilot repos (private-only and/or private→public)
 3. **Follow** [DEPLOYMENT_PATTERNS.md](docs/DEPLOYMENT_PATTERNS.md) for pilot setup
 4. **Add entry workflow** to pilot repos
 5. **Validate** using [TESTBED.md](docs/TESTBED.md) checklist
-6. **Iterate** on rulesets/variables based on pilot feedback
+6. **Iterate** on rulesets/workflow inputs based on pilot feedback
 7. **Rollout** to broader organisation with staged enablement
 
 ---
@@ -270,11 +259,10 @@ GitHub UI → Repository Settings → Secrets and variables
 ```
 ┌─────────────────────────────────────┐
 │  Organisation Configuration         │
-│ (Secrets & Variables in GitHub)     │
-│  - REPO_SYNC_TOKEN                  │
+│ (Secrets in GitHub)                 │
+│  - MANAGEMENT_TOKEN                 │
 │  - PYPI_TOKEN                       │
-│  - *_REPO, *_BRANCH configs         │
-│  - TEST_MATRIX_JSON                 │
+│  - Selected repo access             │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
@@ -284,7 +272,7 @@ GitHub UI → Repository Settings → Secrets and variables
 │ │ workflow-orchestrator.yaml      │ │ ← Entry point (listens to all events)
 │ └─────────────────────────────────┘ │
 │ ┌─────────────────────────────────┐ │
-│ │ config.yaml                     │ │ ← Config resolution (inputs → vars → defaults)
+│ │ config.yaml                     │ │ ← Config resolution (inputs → built-in defaults)
 │ └─────────────────────────────────┘ │
 │ ┌─────────────────────────────────┐ │
 │ │ Policy & Promotion Workflows    │ │ ← Called by orchestrator
@@ -308,7 +296,6 @@ GitHub UI → Repository Settings → Secrets and variables
 
 ---
 
-This is your centralised CI/CD control plane.
-Maintain it well; organisations depend on it.
+This repository is the centralised CI/CD control plane for DAIR workflows.
 
 Last updated: March 20, 2026

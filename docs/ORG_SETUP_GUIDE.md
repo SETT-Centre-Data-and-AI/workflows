@@ -1,11 +1,11 @@
 # Organisation Setup Guide
 
-Configure your GitHub organisation to enforce centralised CI/CD policy using these workflows.
+Configure the GitHub organisation to enforce centralised CI/CD policy using these workflows.
 
 ## Overview
 
-This guide shows you how to:
-1. Create organisation-level secrets and variables
+This guide covers:
+1. Create organisation-level secrets
 2. Configure required status checks via GitHub rulesets
 3. Apply branch protection rules across adopter repositories
 4. Define which repos participate in the mandatory private-to-public sync pipeline
@@ -14,7 +14,7 @@ This guide shows you how to:
 
 Create these organisation secrets with **selected repository access** (grant access only to repos that need them):
 
-### REPO_SYNC_TOKEN
+### MANAGEMENT_TOKEN
 - **Purpose**: GitHub Personal Access Token for cross-repo sync operations (back-sync, sync-to-public, sync-from-public)
 - **Scope**: Read/write access to both private and public repositories
 - **Minimum permissions**:
@@ -28,44 +28,37 @@ Create these organisation secrets with **selected repository access** (grant acc
 - **Scope**: Publish only (not download/manage)
 - **Apply to**: Public repositories with `publish-to-pypi` workflows
 
-## 2. Organisation Variables Setup
+## 2. Non-Secret Configuration Model
 
-Create these organisation variables with appropriate defaults. Downstream repositories can override via repository variables.
+Non-secret configuration is declared in each downstream repository's `.github/workflows/ci-orchestrator.yaml` using `with:` inputs.
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `PRIVATE_REPO` | `workflows_development` | Full repo path of private repository (e.g., `org/repo-private`) |
-| `PRIVATE_REPO_MAIN_BRANCH` | `main` | Main development branch in private repo |
-| `PRIVATE_REPO_RELEASE_BRANCH` | `release` | Release branch in private repo |
-| `PRIVATE_REPO_INCOMING_BRANCH` | `incoming_from_public` | Sync target for public updates |
-| `PUBLIC_REPO` | `workflows` | Full repo path of public repository (e.g., `org/repo`) |
-| `PUBLIC_REPO_INCOMING_BRANCH` | `incoming_from_private` | Sync target for private release updates |
-| `PUBLIC_REPO_RELEASE_BRANCH` | `release` | Release branch in public repo |
-| `RELEASE_CHECK_REPOS_JSON` | `["workflows_development","workflows"]` | JSON array of repos that require version bump on release PRs |
-| `BUILD_SMOKE_PYTHON_VERSION` | `3.13` | Python version for quick smoke test |
-| `TEST_MATRIX_JSON` | `[{"os":"ubuntu-latest","python-version":"3.11"},...]` | Full test matrix JSON |
-| `VERSION_CHECK_PYTHON_VERSION` | `3.12` | Python version for running version check script |
-| `PUBLISH_PYTHON_VERSION` | `3.13` | Python version for building and publishing |
+Required per repo:
+- `package-name`
+- `package-slug`
+- `private-repo` and/or `public-repo`
 
-### Setting Up Organisation Variables in GitHub
+Optional per repo:
+- branch overrides
+- runtime version overrides
+- `test-matrix-json` inline matrix override
+- `publish-on-release` toggle (`true`/`false`)
 
-1. Go to **Organisation Settings** → **Secrets and variables** → **Variables**.
-2. Click **New organisation variable** for each variable above.
-3. Paste values exactly as shown.
-4. Leave **Access** as **All repositories** (downstream repos can override if needed).
+Optional repo variable fallback:
+- `PUBLISH_ON_RELEASE=true|false`
+
+This keeps behavior visible in code and removes dependency on GitHub variables for normal operation.
 
 ## 3. Required Status Checks Configuration
 
 ### Check Names Produced by Orchestrator
 
-Your orchestrator produces these check contexts. When _required_, they prevent merge until passing:
+The orchestrator produces these check contexts. When _required_, they prevent merge until passing:
 
 | Check Name | Workflow | Condition |
 |------------|----------|-----------|
 | `build-and-test` | [build-and-test.yaml](./../.github/workflows/build-and-test.yaml) | Private PR to main |
-| `enforce-private-release-source` | [ensure-private-release-from-main.yaml](./../.github/workflows/ensure-private-release-from-main.yaml) | Private PR to release |
-| `enforce-public-release-source` | [ensure-public-release-from-incoming.yaml](./../.github/workflows/ensure-public-release-from-incoming.yaml) | Public PR to release |
-| `validate-version-bump` | [pre-release-version-check.yaml](./../.github/workflows/pre-release-version-check.yaml) | Any PR to release branch in version-check repos |
+| `ensure-release-source` | [ensure-release-source.yaml](./../.github/workflows/ensure-release-source.yaml) | PR to private or public release branch |
+| `validate-version-bump` | [pre-release-version-check.yaml](./../.github/workflows/pre-release-version-check.yaml) | Any PR to private/public release branch |
 | `back-sync-release-to-main` | [back-sync-release-to-main.yaml](./../.github/workflows/back-sync-release-to-main.yaml) | Merge to private release from main |
 | `sync-to-public` | [sync-to-public.yaml](./../.github/workflows/sync-to-public.yaml) | Merge to private release from main |
 | `publish-to-pypi` | [publish-to-pypi.yaml](./../.github/workflows/publish-to-pypi.yaml) | Merge to public release from incoming |
@@ -101,7 +94,7 @@ Target branches: release
 Target: Regular expression: ^release$
 
 Required status checks:
-  ✓ enforce-private-release-source
+  ✓ ensure-release-source
   ✓ validate-version-bump
 
 Require code reviews: 1
@@ -121,7 +114,7 @@ Target branches: release
 Target: Regular expression: ^release$
 
 Required status checks:
-  ✓ enforce-public-release-source
+  ✓ ensure-release-source
   ✓ validate-version-bump
   ✓ publish-to-pypi (optional, but recommended)
 
@@ -171,13 +164,13 @@ Each downstream repository adopting this orchestrator needs:
 
 1. **Add entry workflow**: Copy [docs/examples/downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
 
-2. **Set repository variables** (optional, for overrides):
-   - `PRIVATE_REPO` — if different from org default
-   - `PUBLIC_REPO` — if different from org default
-   - Any matrix overrides
+2. **Set caller workflow inputs**:
+  - Configure `.github/workflows/ci-orchestrator.yaml` `with:` inputs
+  - Set required package/repo identity values
+  - Add optional `test-matrix-json` only if custom matrix is needed
 
 3. **Enable secret access**:
-   - Grant `REPO_SYNC_TOKEN` access if repo uses back-sync or sync-to-public
+   - Grant `MANAGEMENT_TOKEN` access if repo uses back-sync or sync-to-public
    - Grant `PYPI_TOKEN` access if repo publishes to PyPI
 
 ### Example: New Private Repository
@@ -195,7 +188,7 @@ git push origin main
 
 # 3. Grant secrets (in GitHub UI)
 # Organisation Settings → Secrets and variables → Actions
-# REPO_SYNC_TOKEN → Check this repository
+# MANAGEMENT_TOKEN → Check this repository
 
 # 4. Protect branches (if not org-wide ruleset)
 # Repository Settings → Branch protection rules
@@ -209,15 +202,15 @@ Same as private, plus:
 
 ## 5. Validation Checklist
 
-Before rolling out across your organisation:
+Before rolling out across the organisation:
 
-- [ ] Org secrets created: `REPO_SYNC_TOKEN`, `PYPI_TOKEN`
-- [ ] Org variables created: `PRIVATE_REPO`, `PUBLIC_REPO`, matrix config, etc.
+- [ ] Org secrets created: `MANAGEMENT_TOKEN`, `PYPI_TOKEN`
+- [ ] Pilot repo workflow has required `with:` inputs set in `ci-orchestrator.yaml`
 - [ ] Rulesets configured in at least one pilot repository
 - [ ] Pilot repo has entry workflow calling `SETT-Centre-Data-and-AI/workflows/.github/workflows/workflow-orchestrator.yaml@main`
 - [ ] Manual test: PR to pilot repo main → build-and-test check runs
-- [ ] Manual test: PR to pilot repo release from non-main → enforce-private-release-source check fails
-- [ ] Manual test: PR to pilot repo release from main → enforce-private-release-source check passes
+- [ ] Manual test: PR to pilot repo release from non-main → ensure-release-source check fails
+- [ ] Manual test: PR to pilot repo release from main → ensure-release-source check passes
 - [ ] Manual test: Merge to main → back-sync and sync-to-public workflows triggered (if configured)
 
 ## 6. Monitoring and Troubleshooting
@@ -226,7 +219,7 @@ Before rolling out across your organisation:
 
 **Symptom**: Ruleset requires a check, but it doesn't appear in PR.
 
-**Cause**: Routing logic determined check should not run. Review [workflow-orchestrator.yaml](../github/workflows/workflow-orchestrator.yaml) conditions.
+**Cause**: Routing logic determined that the check should not run. Review [workflow-orchestrator.yaml](../.github/workflows/workflow-orchestrator.yaml) conditions.
 
 **Fix**: Verify PR matches conditions (e.g., PR to main for build-and-test, PR to release for release checks).
 
@@ -239,7 +232,7 @@ Before rolling out across your organisation:
 **Fix**:
 1. Org Settings → Secrets and variables → Secrets
 2. Check secret exists
-3. Edit secret → Selected repositories → add your repo
+3. Edit secret → Selected repositories → add the repository
 
 ### Rollback Strategy
 
@@ -255,4 +248,4 @@ If a workflow change breaks pipelines:
 
 - [Installation and setup](installation-guide.md)
 - [Usage and integration](usage-guide.md)
-- [Orchestrator source](../github/workflows/workflow-orchestrator.yaml)
+- [Orchestrator source](../.github/workflows/workflow-orchestrator.yaml)

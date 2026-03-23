@@ -1,4 +1,4 @@
-name: Self Orchestrator (Development)
+name: Self Orchestrator
 
 # This workflow allows the workflows repo itself to use its own workflows
 # during development, before publishing to a release tag.
@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   call-local-orchestrator:
+    name: Orchestrate
     uses: ./.github/workflows/workflow-orchestrator.yaml
     with:
       event-name: ${{ github.event_name }}
@@ -24,4 +25,17 @@ jobs:
       ref-name: ${{ github.ref_name }}
       repository: ${{ github.repository }}
       pr-merged: ${{ github.event.pull_request.merged || false }}
+      package-name: workflows
+      package-slug: workflows
+      private-repo: ${{ github.repository }}
+      private-repo-main-branch: main
+      private-repo-release-branch: release
+      private-repo-incoming-branch: incoming_from_public
+      public-repo: SETT-Centre-Data-and-AI/workflows
+      public-repo-release-branch: release
+      public-repo-incoming-branch: incoming_from_private
+      build-smoke-python-version: '3.13'
+      version-check-python-version: '3.13'
+      publish-python-version: '3.13'
+      publish-on-release: 'false'
     secrets: inherit
