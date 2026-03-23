@@ -114,7 +114,35 @@ jobs:
           git remote add public https://x-access-token:${MANAGEMENT_TOKEN}@github.com/${PUBLIC_REPO}.git
 
         echo "Pushing HEAD → public:${PUBLIC_REPO_INCOMING_BRANCH}"
-        git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH} --force
+        set +e
+        git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH}
+        push_exit=$?
+        set -e
+
+        if [ "$push_exit" -eq 0 ]; then
+          echo "Non-force push succeeded."
+          exit 0
+        fi
+
+        echo "Non-force push failed. Trying force push as fallback..."
+        set +e
+        force_output=$(git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH} --force 2>&1)
+        force_exit=$?
+        set -e
+        echo "$force_output"
+
+        if [ "$force_exit" -eq 0 ]; then
+          echo "Force push succeeded."
+          exit 0
+        fi
+
+        if echo "$force_output" | grep -q "GH013"; then
+          echo "ERROR: Push blocked by repository rules (GH013)."
+          echo "The token actor must be explicitly listed in the target repo ruleset bypass list for branch ${PUBLIC_REPO_INCOMING_BRANCH}."
+          echo "Also confirm bypass mode allows direct pushes (not PR-only) for this actor."
+        fi
+
+        exit "$force_exit"
 
     - name: Create PR for Release
       env:

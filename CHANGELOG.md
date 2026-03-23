@@ -1,3 +1,9 @@
+## v0.8.1 (2026-03-23)
+
+### Fix
+
+- **sync-to-public**: attempt override push
+
 ## v0.8.0 (2026-03-23)
 
 ### Feat

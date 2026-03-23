@@ -1,6 +1,6 @@
 [project]
 name = "workflows"
-version = "0.8.0"
+version = "0.8.1"
 description = "Data & AI Unit centralised CI/CD workflows"
 authors = [{ name = "Cai Davis", email = "Cai.Davis@uhs.nhs.uk" }]
 license = "CC-BY-NC-4.0"
