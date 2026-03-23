@@ -34,22 +34,27 @@ This repository is the orchestration control plane for adopter repositories:
 ## Rollout Model
 
 1. Keep this repository as the single source of orchestration logic.
-2. In each downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
-3. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
-4. The orchestrator resolves configuration once via `config.yaml` and passes resolved values to routed workflows.
-5. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
-6. Enforce required status checks with organisation rulesets.
-7. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
+2. In each external downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
+3. Keep internal workflow repos (`workflows` and `workflows_development`) on local orchestrator calls (`uses: ./.github/workflows/workflow-orchestrator.yaml`) so CI always tests local workflow changes.
+4. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
+5. The orchestrator resolves configuration once via `config.yaml` and passes resolved values to routed workflows.
+6. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.
+7. Enforce required status checks with organisation rulesets.
+8. Manage secrets at organisation scope (`MANAGEMENT_TOKEN`, `PYPI_TOKEN`) with selected-repo access.
 
 **Start here**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for quick overview of what's ready and next steps.
 
 ## Reference Strategy
 
-Downstream repositories should consume **stable releases** of this orchestrator.
+External downstream repositories should consume **stable releases** of this orchestrator.
+
+Internal workflow repositories must use local orchestrator references:
+- `SETT-Centre-Data-and-AI/workflows`
+- `SETT-Centre-Data-and-AI/workflows_development`
 
 Default: Use `@release` tag for production.
 - `@release` — stable, tested version
-- `@main` — development version (use only in this repo during development)
+- `@main` — development version (use only for controlled pre-release validation in external repos)
 
 For downstream repositories: copy [repo_template/.github/workflows](repo_template/.github/workflows) into the repository root and remove the outer `repo_template` folder.
 

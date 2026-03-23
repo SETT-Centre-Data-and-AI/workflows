@@ -2,6 +2,9 @@
 
 Copy this `.github/workflows` folder into the repository root.
 
+This template is for external adopter repositories.
+Do not use it in `SETT-Centre-Data-and-AI/workflows` or `SETT-Centre-Data-and-AI/workflows_development`; those internal workflow repositories should call their local orchestrator path instead.
+
 The path in this template is:
 
 `repo_template/.github/workflows`

@@ -59,8 +59,9 @@ jobs:
 ```
 
 Important:
-- Use `@release` to consume stable, tested versions of centralised workflows.
-- Use `@main` only for pre-release testing in development.
+- Internal workflow repositories (`workflows` and `workflows_development`) must call local orchestrator path: `uses: ./.github/workflows/workflow-orchestrator.yaml`.
+- External downstream repositories should use `@release` to consume stable, tested centralised workflows.
+- Use `@main` only for controlled pre-release validation in external repositories.
 - Tag releases in this repository using semantic versioning.
 
 ## Manual Sync From Public (Downstream Repos)

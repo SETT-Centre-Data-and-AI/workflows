@@ -1,3 +1,9 @@
+## v0.8.3 (2026-03-23)
+
+### Fix
+
+- **development**: force both workflows repos to use own orchestrators
+
 ## v0.8.2 (2026-03-23)
 
 ### Fix
