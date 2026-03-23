@@ -200,20 +200,32 @@ jobs:
 
         echo "PR #$PR_NUMBER passed mergeability checks."
 
-    - name: Enable Auto-Merge (Merge Commit)
+    - name: Enable Auto-Merge or Admin Merge (Non-Blocking)
       if: env.SKIP_SYNC != 'true'
       env:
         GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
       run: |
-        if ! gh pr merge "$PR_NUMBER" \
+        if gh pr merge "$PR_NUMBER" \
+          --repo "$PRIVATE_REPO" \
+          --admin \
+          --merge; then
+          echo "Admin bypass merge completed for PR #$PR_NUMBER."
+          exit 0
+        fi
+
+        echo "Admin bypass merge was not available. Attempting auto-merge..."
+
+        if gh pr merge "$PR_NUMBER" \
           --repo "$PRIVATE_REPO" \
           --auto \
           --merge; then
-          pr_url=$(gh pr view "$PR_NUMBER" --repo "$PRIVATE_REPO" --json url --jq '.url')
-          echo "ERROR: Failed to enable auto-merge for back-sync PR."
-          echo "This may indicate merge method policy or branch-protection constraints."
-          echo "PR URL: $pr_url"
-          exit 1
+          echo "Auto-merge enabled for PR #$PR_NUMBER."
+          exit 0
         fi
 
-        echo "Auto-merge enabled for PR #$PR_NUMBER."
+        pr_url=$(gh pr view "$PR_NUMBER" --repo "$PRIVATE_REPO" --json url --jq '.url')
+        echo "WARNING: Could not perform admin bypass merge or enable auto-merge for PR #$PR_NUMBER."
+        echo "Leaving PR open for normal review/merge flow."
+        echo "If desired, grant this token ruleset bypass to allow automatic admin merges."
+        echo "PR URL: $pr_url"
+        exit 0

@@ -1,3 +1,13 @@
+## v0.7.0 (2026-03-23)
+
+### Feat
+
+- **back-sync-release**: prevent running of tests
+
+### Fix
+
+- **back-sync-release-to-main**: admin bypasses merge
+
 ## v0.6.0 (2026-03-23)
 
 ### Fix
