@@ -63,6 +63,24 @@ jobs:
           echo "Management token is present"
         fi
 
+    - name: Show Token Actor and Ruleset Diagnostics
+      env:
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
+        PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
+        PUBLIC_REPO_INCOMING_BRANCH: ${{ env.PUBLIC_REPO_INCOMING_BRANCH }}
+      run: |
+        echo "Resolving token actor identity..."
+        token_actor=$(gh api user --jq .login 2>/dev/null || echo "unknown")
+        echo "Token actor: ${token_actor}"
+        echo "Target repo:  ${PUBLIC_REPO}"
+        echo "Target branch: ${PUBLIC_REPO_INCOMING_BRANCH}"
+
+        echo "Effective rulesets for target branch:"
+        gh api \
+          "repos/${PUBLIC_REPO}/rules/branches/${PUBLIC_REPO_INCOMING_BRANCH}" \
+          --jq '.[] | {name: .name, source: .source, enforcement: .enforcement, bypass_actors: (.bypass_actors // [])}' \
+          || echo "Could not query branch rules via API (insufficient token permissions or endpoint not available)."
+
     - name: Checkout Private Release Branch
       uses: actions/checkout@v5
       with:
