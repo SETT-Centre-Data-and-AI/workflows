@@ -1,3 +1,54 @@
+## v0.9.2 (2026-03-23)
+
+### Fix
+
+- **check-version**: pip installed packaging
+
+## v0.9.1 (2026-03-23)
+
+## v0.9.0 (2026-03-23)
+
+### Feat
+
+- **publish-to-pypi**: switched off by default
+
+### Fix
+
+- **orchestrator**: fix to internal/external entries
+
+### Refactor
+
+- **CI/CD**: refactored to harden some flows, switch PYPI_PUBLISH to false by default, and sort naming clarity
+
+## v0.8.3 (2026-03-23)
+
+### Fix
+
+- **development**: force both workflows repos to use own orchestrators
+
+## v0.8.2 (2026-03-23)
+
+### Fix
+
+- **sync-to-public2**: new fix attempt
+
+## v0.8.1 (2026-03-23)
+
+### Fix
+
+- **sync-to-public**: attempt override push
+
+## v0.8.0 (2026-03-23)
+
+### Feat
+
+- **review**: reviewd inc docs
+- **.gitignore**: kept all *.yaml in template workflows
+
+### Refactor
+
+- **workflows**: refactored to remove repeat calls to config.yaml
+
 ## v0.7.0 (2026-03-23)
 
 ### Feat

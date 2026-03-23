@@ -52,37 +52,17 @@ on:
         type: string
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      package-name: ${{ inputs.package-name }}
-      package-slug: ${{ inputs.package-slug }}
-      private-repo: ${{ inputs.private-repo }}
-      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
-      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
-      private-repo-incoming-branch: ${{ inputs.private-repo-incoming-branch }}
-      public-repo: ${{ inputs.public-repo }}
-      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
-      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
-      build-smoke-python-version: ${{ inputs.build-smoke-python-version }}
-      test-matrix-json: ${{ inputs.test-matrix-json }}
-      version-check-python-version: ${{ inputs.version-check-python-version }}
-      publish-python-version: ${{ inputs.publish-python-version }}
-      publish-on-release: ${{ inputs.publish-on-release }}
-
   build-and-smoke-test:
     name: Smoke Build
-    needs: env-config
     if: >
-      github.repository == needs.env-config.outputs.PRIVATE_REPO
+      github.repository == inputs.private-repo
 
     strategy:
       fail-fast: false
       matrix:
         include:
         - os: ubuntu-latest
-          python-version: ${{ needs.env-config.outputs.BUILD_SMOKE_PYTHON_VERSION }}
+          python-version: ${{ inputs.build-smoke-python-version }}
 
     runs-on: ${{ matrix.os }}
 
@@ -91,10 +71,10 @@ jobs:
         shell: bash
 
     env:
-      PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
-      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      PACKAGE_NAME: ${{ inputs.package-name }}
+      PACKAGE_SLUG: ${{ inputs.package-slug }}
+      PRIVATE_REPO: ${{ inputs.private-repo }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch }}
 
     steps:
     - name: Checkout Code
@@ -152,13 +132,12 @@ jobs:
 
   run-tests:
     name: Test Matrix
-    needs: env-config
     if: >
-      github.repository == needs.env-config.outputs.PRIVATE_REPO
+      github.repository == inputs.private-repo
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.env-config.outputs.TEST_MATRIX_JSON) }}
+      matrix: ${{ fromJson(inputs.test-matrix-json) }}
 
     runs-on: ${{ matrix.os }}
 
@@ -167,10 +146,10 @@ jobs:
         shell: bash
 
     env:
-      PACKAGE_NAME: ${{ needs.env-config.outputs.PACKAGE_NAME }}
-      PACKAGE_SLUG: ${{ needs.env-config.outputs.PACKAGE_SLUG }}
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
+      PACKAGE_NAME: ${{ inputs.package-name }}
+      PACKAGE_SLUG: ${{ inputs.package-slug }}
+      PRIVATE_REPO: ${{ inputs.private-repo }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch }}
 
     steps:
     - name: Checkout Code

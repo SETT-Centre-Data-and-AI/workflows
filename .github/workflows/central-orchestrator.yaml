@@ -132,6 +132,7 @@ jobs:
       CTX_HEAD_REF: ${{ github.head_ref || '' }}
       CTX_REF_NAME: ${{ github.ref_name || '' }}
       CTX_PR_MERGED: ${{ github.event.pull_request.merged || false }}
+      WORKFLOW_REF: ${{ github.workflow_ref || '' }}
 
     steps:
     - name: Show Event Context
@@ -170,6 +171,16 @@ jobs:
         REPOSITORY_NAME="${CALLER_REPOSITORY:-$GITHUB_REPOSITORY}"
         PR_MERGED="${CALLER_PR_MERGED:-$CTX_PR_MERGED}"
 
+        if [ "$REPOSITORY_NAME" = "SETT-Centre-Data-and-AI/workflows" ] || [ "$REPOSITORY_NAME" = "SETT-Centre-Data-and-AI/workflows_development" ]; then
+          if [ -n "$WORKFLOW_REF" ] && [[ "$WORKFLOW_REF" == *"@release" ]]; then
+            echo "ERROR: Internal workflow repositories must call their local entry workflow."
+            echo "Internal repos must use local paths: uses: ./.github/workflows/<entrypoint>.yaml"
+            echo "Not: uses: SETT-Centre-Data-and-AI/workflows/.github/workflows/<workflow>.yaml@release"
+            echo "Actual workflow_ref: $WORKFLOW_REF"
+            exit 1
+          fi
+        fi
+
         RUN_BUILD_AND_TEST=false
         RUN_ENSURE_RELEASE_SOURCE=false
         RUN_PRE_RELEASE_VERSION_CHECK=false
@@ -180,7 +191,9 @@ jobs:
         if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
           if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
             RUN_BACK_SYNC=true
-            RUN_SYNC_TO_PUBLIC=true
+            if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+              RUN_SYNC_TO_PUBLIC=true
+            fi
           fi
           if [ "$REPOSITORY_NAME" = "$PUBLIC_REPO" ] && [ "$REF_NAME" = "$PUBLIC_REPO_RELEASE_BRANCH" ] && [ "$PUBLISH_ON_RELEASE" = "true" ]; then
             RUN_PUBLISH_TO_PYPI=true
@@ -202,7 +215,9 @@ jobs:
 
             if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
               RUN_BACK_SYNC=true
-              RUN_SYNC_TO_PUBLIC=true
+              if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+                RUN_SYNC_TO_PUBLIC=true
+              fi
             fi
           fi
 
@@ -312,4 +327,5 @@ jobs:
       public-repo: ${{ needs.env-config.outputs.PUBLIC_REPO }}
       public-repo-release-branch: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       publish-python-version: ${{ needs.env-config.outputs.PUBLISH_PYTHON_VERSION }}
+      publish-on-release: ${{ needs.env-config.outputs.PUBLISH_ON_RELEASE }}
     secrets: inherit

@@ -90,11 +90,11 @@ git commit -m "bump: version 0.1.0 → 0.2.0"
 git push origin test/version-bump
 
 # Open PR against release branch via GitHub UI
-# Expected: validate-version-bump check PASSES
+# Expected: pre-release-version-check route check PASSES
 ```
 
 **Expected behavior**:
-- Check `validate-version-bump` appears in PR
+- Check `pre-release-version-check` appears in PR
 - Check **passes** because version was bumped vs base release branch
 
 ### 5. Version Bump Check (Failure Case)
@@ -114,11 +114,11 @@ git commit -m "docs: update readme"
 git push origin test/no-version-bump
 
 # Open PR against release branch via GitHub UI
-# Expected: validate-version-bump check FAILS
+# Expected: pre-release-version-check route check FAILS
 ```
 
 **Expected behavior**:
-- Check `validate-version-bump` appears in PR
+- Check `pre-release-version-check` appears in PR
 - Check **fails** because pyproject.toml version unchanged
 - PR cannot be merged while check fails
 
@@ -180,7 +180,7 @@ Event: pull_request
       Base branch is PRIVATE_REPO_RELEASE_BRANCH?
         Yes:
           Action is opened|reopened|synchronize?
-            Yes: run ensure-release-source, validate-version-bump
+            Yes: run ensure-release-source, pre-release-version-check
           Action is closed AND merged?
             Yes: run back-sync-release-to-main, sync-to-public
   Repository is PUBLIC_REPO?
@@ -188,7 +188,7 @@ Event: pull_request
       Base branch is PUBLIC_REPO_RELEASE_BRANCH?
         Yes:
           Action is opened|reopened|synchronize?
-            Yes: run ensure-release-source, validate-version-bump
+            Yes: run ensure-release-source, pre-release-version-check
 
 Event: workflow_dispatch
   Repository is PRIVATE_REPO?
@@ -213,7 +213,7 @@ Event: workflow_dispatch
 
 ### Check doesn't appear in PR
 
-- Verify routing conditions in [workflow-orchestrator.yaml](./.github/workflows/workflow-orchestrator.yaml)
+- Verify routing conditions in [central-orchestrator.yaml](./.github/workflows/central-orchestrator.yaml)
 - Check PR matches a routing condition (e.g., base branch name)
 - Check workflow file syntax is valid (no YAML errors)
 
@@ -250,5 +250,5 @@ Use GitHub API or Actions artifacts to collect metrics over time.
 
 ## Further Reading
 
-- [Orchestrator source](../.github/workflows/workflow-orchestrator.yaml)
+- [Orchestrator source](../.github/workflows/central-orchestrator.yaml)
 - [Config contract](../.github/workflows/config.yaml)

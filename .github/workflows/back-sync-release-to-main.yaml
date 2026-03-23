@@ -27,24 +27,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      private-repo: ${{ inputs.private-repo }}
-      private-repo-main-branch: ${{ inputs.private-repo-main-branch }}
-      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
-    secrets: inherit
-
   back-sync-release-to-main:
     name: Back Sync
-    needs: env-config
     if: >
-      github.repository == needs.env-config.outputs.PRIVATE_REPO &&
+      github.repository == (inputs.private-repo || github.repository) &&
       (
         github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
-         github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
+         github.ref_name == (inputs.private-repo-release-branch || 'release'))
       )
 
     runs-on: ubuntu-latest
@@ -57,9 +47,9 @@ jobs:
         shell: bash
 
     env:
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
-      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      PRIVATE_REPO: ${{ inputs.private-repo || github.repository }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch || 'main' }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ inputs.private-repo-release-branch || 'release' }}
       MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
     steps:

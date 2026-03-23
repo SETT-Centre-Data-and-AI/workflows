@@ -105,7 +105,7 @@ env:
   PRIVATE_REPO_INCOMING_BRANCH: ${{ inputs.private-repo-incoming-branch || 'incoming_from_public' }}  # mirrors incoming from public
 
   # Public Repo
-  PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+  PUBLIC_REPO: ${{ inputs.public-repo }}
   PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || 'incoming_from_private' }}  # mirrors incoming from private
   PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}                 # when PR closed, trigger PyPI publish
 
@@ -126,7 +126,7 @@ env:
   TEST_MATRIX_JSON: ${{ inputs.test-matrix-json || '' }}
   VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.12' }}
   PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
-  PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'true' }}
+  PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'false' }}
 # =================
 # End Manual Config
 # =================

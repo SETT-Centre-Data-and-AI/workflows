@@ -26,26 +26,14 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      private-repo: ${{ inputs.private-repo }}
-      private-repo-release-branch: ${{ inputs.private-repo-release-branch }}
-      public-repo: ${{ inputs.public-repo }}
-      public-repo-release-branch: ${{ inputs.public-repo-release-branch }}
-      public-repo-incoming-branch: ${{ inputs.public-repo-incoming-branch }}
-    secrets: inherit
-
   sync-to-public:
     name: Sync Public
-    needs: env-config
     if: > # in private repo, and PR merged or run manually
-      github.repository == needs.env-config.outputs.PRIVATE_REPO &&
+      github.repository == (inputs.private-repo || github.repository) &&
       (
         github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
-         github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
+         github.ref_name == (inputs.private-repo-release-branch || 'release'))
       )
     runs-on: ubuntu-latest
 
@@ -55,12 +43,12 @@ jobs:
 
     env:
       # From shared config
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH }}
+      PRIVATE_REPO: ${{ inputs.private-repo || github.repository }}
+      PRIVATE_REPO_RELEASE_BRANCH: ${{ inputs.private-repo-release-branch || 'release' }}
 
-      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
-      PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
-      PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
+      PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
+      PUBLIC_REPO_RELEASE_BRANCH: ${{ inputs.public-repo-release-branch || 'release' }}
+      PUBLIC_REPO_INCOMING_BRANCH: ${{ inputs.public-repo-incoming-branch || 'incoming_from_private' }}
 
       MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
@@ -74,6 +62,24 @@ jobs:
         else
           echo "Management token is present"
         fi
+
+    - name: Show Token Actor and Ruleset Diagnostics
+      env:
+        GH_TOKEN: ${{ env.MANAGEMENT_TOKEN }}
+        PUBLIC_REPO: ${{ env.PUBLIC_REPO }}
+        PUBLIC_REPO_INCOMING_BRANCH: ${{ env.PUBLIC_REPO_INCOMING_BRANCH }}
+      run: |
+        echo "Resolving token actor identity..."
+        token_actor=$(gh api user --jq .login 2>/dev/null || echo "unknown")
+        echo "Token actor: ${token_actor}"
+        echo "Target repo:  ${PUBLIC_REPO}"
+        echo "Target branch: ${PUBLIC_REPO_INCOMING_BRANCH}"
+
+        echo "Effective rulesets for target branch:"
+        gh api \
+          "repos/${PUBLIC_REPO}/rules/branches/${PUBLIC_REPO_INCOMING_BRANCH}" \
+          --jq '.[] | {name: .name, source: .source, enforcement: .enforcement, bypass_actors: (.bypass_actors // [])}' \
+          || echo "Could not query branch rules via API (insufficient token permissions or endpoint not available)."
 
     - name: Checkout Private Release Branch
       uses: actions/checkout@v5
@@ -126,7 +132,35 @@ jobs:
           git remote add public https://x-access-token:${MANAGEMENT_TOKEN}@github.com/${PUBLIC_REPO}.git
 
         echo "Pushing HEAD → public:${PUBLIC_REPO_INCOMING_BRANCH}"
-        git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH} --force
+        set +e
+        git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH}
+        push_exit=$?
+        set -e
+
+        if [ "$push_exit" -eq 0 ]; then
+          echo "Non-force push succeeded."
+          exit 0
+        fi
+
+        echo "Non-force push failed. Trying force push as fallback..."
+        set +e
+        force_output=$(git push public HEAD:refs/heads/${PUBLIC_REPO_INCOMING_BRANCH} --force 2>&1)
+        force_exit=$?
+        set -e
+        echo "$force_output"
+
+        if [ "$force_exit" -eq 0 ]; then
+          echo "Force push succeeded."
+          exit 0
+        fi
+
+        if echo "$force_output" | grep -q "GH013"; then
+          echo "ERROR: Push blocked by repository rules (GH013)."
+          echo "The token actor must be explicitly listed in the target repo ruleset bypass list for branch ${PUBLIC_REPO_INCOMING_BRANCH}."
+          echo "Also confirm bypass mode allows direct pushes (not PR-only) for this actor."
+        fi
+
+        exit "$force_exit"
 
     - name: Create PR for Release
       env:

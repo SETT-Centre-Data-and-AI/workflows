@@ -33,20 +33,10 @@ on:
         required: true
 
 jobs:
-  env-config:
-    name: Resolve Config
-    uses: ./.github/workflows/config.yaml
-    with:
-      private-repo: ${{ inputs.private-repo || '' }}
-      private-repo-main-branch: ${{ inputs.private-repo-main-branch || '' }}
-      private-repo-incoming-branch: ${{ inputs.private-repo-incoming-branch || '' }}
-      public-repo: ${{ inputs.public-repo || '' }}
-
   sync-from-public:
     name: Sync Private
-    needs: env-config
 
-    if: github.repository == needs.env-config.outputs.PRIVATE_REPO
+    if: github.repository == (inputs.private-repo || github.repository)
 
     runs-on: ubuntu-latest
 
@@ -56,11 +46,11 @@ jobs:
 
     env:
       # From shared config
-      PRIVATE_REPO: ${{ needs.env-config.outputs.PRIVATE_REPO }}
-      PRIVATE_REPO_MAIN_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_MAIN_BRANCH }}
-      PRIVATE_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PRIVATE_REPO_INCOMING_BRANCH }}
+      PRIVATE_REPO: ${{ inputs.private-repo || github.repository }}
+      PRIVATE_REPO_MAIN_BRANCH: ${{ inputs.private-repo-main-branch || 'main' }}
+      PRIVATE_REPO_INCOMING_BRANCH: ${{ inputs.private-repo-incoming-branch || 'incoming_from_public' }}
 
-      PUBLIC_REPO: ${{ needs.env-config.outputs.PUBLIC_REPO }}
+      PUBLIC_REPO: ${{ inputs.public-repo || 'SETT-Centre-Data-and-AI/workflows' }}
       MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_TOKEN }}
 
       PUBLIC_BRANCH: ${{ inputs.public_branch || github.event.inputs.public_branch }}

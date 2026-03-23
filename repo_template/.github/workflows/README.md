@@ -2,20 +2,23 @@
 
 Copy this `.github/workflows` folder into the repository root.
 
+This template is for external adopter repositories.
+Do not use it in `SETT-Centre-Data-and-AI/workflows` or `SETT-Centre-Data-and-AI/workflows_development`; those internal workflow repositories should call their local orchestrator path instead.
+
 The path in this template is:
 
 `repo_template/.github/workflows`
 
 After copying, remove the outer `repo_template` folder so the target repository contains:
 
-`/.github/workflows/ci-orchestrator.yaml`
+`/.github/workflows/orchestrator.yaml`
 `/.github/workflows/sync-from-public.yaml`
 `/.github/workflows/pre-install.sh`
 `/.github/workflows/README.md`
 
 What to edit:
 
-- `ci-orchestrator.yaml`
+- `orchestrator.yaml`
   - set `package-name`
   - set `package-slug`
   - set `private-repo` and/or `public-repo`
