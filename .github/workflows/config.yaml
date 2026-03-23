@@ -126,7 +126,7 @@ env:
   TEST_MATRIX_JSON: ${{ inputs.test-matrix-json || '' }}
   VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.12' }}
   PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
-  PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'true' }}
+  PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'false' }}
 # =================
 # End Manual Config
 # =================

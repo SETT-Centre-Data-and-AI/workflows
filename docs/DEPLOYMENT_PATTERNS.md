@@ -17,9 +17,9 @@ Choose the pattern that matches the repository lifecycle and publication model.
 
 ### Setup
 
-1. Copy [downstream-private-only-ci-orchestrator.yaml](examples/downstream-private-only-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
+1. Copy [orchestrator.yaml](../../repo_template/.github/workflows/orchestrator.yaml) to `.github/workflows/orchestrator.yaml`
 
-2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
+2. Edit `.github/workflows/orchestrator.yaml` inputs:
    ```
    private-repo: your-org/your-private-repo
    package-name: your_package
@@ -69,9 +69,9 @@ Merge to release
 
 **Private Repository**:
 
-1. Copy [downstream-private-to-public-ci-orchestrator.yaml](examples/downstream-private-to-public-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
+1. Copy [orchestrator.yaml](../../repo_template/.github/workflows/orchestrator.yaml) to `.github/workflows/orchestrator.yaml`
 
-2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
+2. Edit `.github/workflows/orchestrator.yaml` inputs:
    ```
    private-repo: your-org/your-private-repo
    public-repo: your-org/your-public-repo
@@ -93,9 +93,9 @@ Merge to release
 
 **Public Repository**:
 
-1. Copy [downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
+1. Copy [orchestrator.yaml](../../repo_template/.github/workflows/orchestrator.yaml) to `.github/workflows/orchestrator.yaml`
 
-2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
+2. Edit `.github/workflows/orchestrator.yaml` inputs:
    ```
    public-repo: your-org/your-public-repo
    package-name: your_package
@@ -135,7 +135,7 @@ public incoming PR
    ↓ (checks: ensure-release-source, pre-release-version-check pass)
 Merge to public release
     ↓ (auto)
-   └─ publish-to-pypi: build and upload to PyPI (if publish-on-release/PUBLISH_ON_RELEASE is true)
+   └─ publish-to-pypi: build and upload to PyPI (if publish-on-release/PUBLISH_ON_RELEASE is true; disabled by default, enable opt-in)
 ```
 
 ## Pattern 3: Public-Only Repository
@@ -152,9 +152,9 @@ Merge to public release
 
 ### Setup
 
-1. Copy [downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
+1. Copy [orchestrator.yaml](../../repo_template/.github/workflows/orchestrator.yaml) to `.github/workflows/orchestrator.yaml`
 
-2. Edit `.github/workflows/ci-orchestrator.yaml` inputs:
+2. Edit `.github/workflows/orchestrator.yaml` inputs:
    ```
    public-repo: your-org/your-public-repo
    package-name: your_package
@@ -190,7 +190,7 @@ This pattern bypasses the private-to-public sync workflow. Use only when no priv
 **Starting with Pattern 1 → Pattern 2**:
 
 1. Create a public repository (e.g., `your-org/your-package`)
-2. In private repo `ci-orchestrator.yaml`, set `public-repo: your-org/your-package`
+2. In private repo `orchestrator.yaml`, set `public-repo: your-org/your-package`
 3. Seed public repo with initial commit
 4. Grant `MANAGEMENT_TOKEN` in org secrets
 5. Trigger manual `back-sync` and `sync-to-public` workflows
@@ -205,7 +205,7 @@ This pattern bypasses the private-to-public sync workflow. Use only when no priv
 
 ## Caller Workflow Overrides
 
-If a downstream repo needs custom behavior, set overrides in `.github/workflows/ci-orchestrator.yaml`:
+If a downstream repo needs custom behavior, set overrides in `.github/workflows/orchestrator.yaml`:
 
 ```
 # Example: Custom branch names
@@ -226,7 +226,7 @@ Workflow inputs take precedence over built-in defaults.
 
 ### "Why isn't sync-to-public running?"
 
-- Confirm `public-repo` input is set in `ci-orchestrator.yaml`
+- Confirm `public-repo` input is set in `orchestrator.yaml`
 - Check `MANAGEMENT_TOKEN` is granted to both repos
 - Verify merge was to private release (not another branch)
 

@@ -11,14 +11,14 @@ The path in this template is:
 
 After copying, remove the outer `repo_template` folder so the target repository contains:
 
-`/.github/workflows/ci-orchestrator.yaml`
+`/.github/workflows/orchestrator.yaml`
 `/.github/workflows/sync-from-public.yaml`
 `/.github/workflows/pre-install.sh`
 `/.github/workflows/README.md`
 
 What to edit:
 
-- `ci-orchestrator.yaml`
+- `orchestrator.yaml`
   - set `package-name`
   - set `package-slug`
   - set `private-repo` and/or `public-repo`

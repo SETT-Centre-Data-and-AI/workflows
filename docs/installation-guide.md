@@ -29,7 +29,7 @@ Notes:
 
 ## 3. Configure Non-Secret Settings in Caller Workflow
 
-Set non-secret configuration directly in each downstream repo's `.github/workflows/ci-orchestrator.yaml` using the `with:` block.
+Set non-secret configuration directly in each downstream repo's `.github/workflows/orchestrator.yaml` using the `with:` block.
 
 Required values:
 - `package-name`

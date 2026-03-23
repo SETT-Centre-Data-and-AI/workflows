@@ -38,7 +38,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' &&
          github.ref_name == (inputs.public-repo-release-branch || 'release'))
       ) &&
-      (inputs.publish-on-release || 'true') == 'true'
+      (inputs.publish-on-release || 'false') == 'true'
 
     runs-on: ubuntu-latest
     permissions:

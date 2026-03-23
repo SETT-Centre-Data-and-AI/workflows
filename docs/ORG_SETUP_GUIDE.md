@@ -30,7 +30,7 @@ Create these organisation secrets with **selected repository access** (grant acc
 
 ## 2. Non-Secret Configuration Model
 
-Non-secret configuration is declared in each downstream repository's `.github/workflows/ci-orchestrator.yaml` using `with:` inputs.
+Non-secret configuration is declared in each downstream repository's `.github/workflows/orchestrator.yaml` using `with:` inputs.
 
 Required per repo:
 - `package-name`
@@ -41,7 +41,7 @@ Optional per repo:
 - branch overrides
 - runtime version overrides
 - `test-matrix-json` inline matrix override
-- `publish-on-release` toggle (`true`/`false`)
+- `publish-on-release` toggle (`true`/`false`; defaults to `false`)
 
 Optional repo variable fallback:
 - `PUBLISH_ON_RELEASE=true|false`
@@ -164,10 +164,10 @@ Each downstream repository adopting this orchestrator needs:
 
 ### Minimal Setup
 
-1. **Add entry workflow**: Copy [docs/examples/downstream-ci-orchestrator.yaml](examples/downstream-ci-orchestrator.yaml) to `.github/workflows/ci-orchestrator.yaml`
+1. **Add entry workflow**: Copy [orchestrator.yaml](../../repo_template/.github/workflows/orchestrator.yaml) to `.github/workflows/orchestrator.yaml`
 
 2. **Set caller workflow inputs**:
-  - Configure `.github/workflows/ci-orchestrator.yaml` `with:` inputs
+  - Configure `.github/workflows/orchestrator.yaml` `with:` inputs
   - Set required package/repo identity values
   - Add optional `test-matrix-json` only if custom matrix is needed
 
@@ -180,11 +180,11 @@ Each downstream repository adopting this orchestrator needs:
 ```bash
 # 1. Copy entry workflow
 mkdir -p .github/workflows
-curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/main/docs/examples/downstream-ci-orchestrator.yaml \
-  > .github/workflows/ci-orchestrator.yaml
+curl https://raw.githubusercontent.com/SETT-Centre-Data-and-AI/workflows/release/repo_template/.github/workflows/orchestrator.yaml \
+  > .github/workflows/orchestrator.yaml
 
 # 2. Commit and push
-git add .github/workflows/ci-orchestrator.yaml
+git add .github/workflows/orchestrator.yaml
 git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 
@@ -207,9 +207,9 @@ Same as private, plus:
 Before rolling out across the organisation:
 
 - [ ] Org secrets created: `MANAGEMENT_TOKEN`, `PYPI_TOKEN`
-- [ ] Pilot repo workflow has required `with:` inputs set in `ci-orchestrator.yaml`
+- [ ] Pilot repo workflow has required `with:` inputs set in `orchestrator.yaml`
 - [ ] Rulesets configured in at least one pilot repository
-- [ ] Pilot repo has entry workflow calling `SETT-Centre-Data-and-AI/workflows/.github/workflows/workflow-orchestrator.yaml@main`
+- [ ] Pilot repo has entry workflow calling `SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@main`
 - [ ] Manual test: PR to pilot repo main → build-and-test check runs
 - [ ] Manual test: PR to pilot repo release from non-main → ensure-release-source check fails
 - [ ] Manual test: PR to pilot repo release from main → ensure-release-source check passes
@@ -221,7 +221,7 @@ Before rolling out across the organisation:
 
 **Symptom**: Ruleset requires a check, but it doesn't appear in PR.
 
-**Cause**: Routing logic determined that the check should not run. Review [workflow-orchestrator.yaml](../.github/workflows/workflow-orchestrator.yaml) conditions.
+**Cause**: Routing logic determined that the check should not run. Review [central-orchestrator.yaml](../.github/workflows/central-orchestrator.yaml) conditions.
 
 **Fix**: Verify PR matches conditions (e.g., PR to main for build-and-test, PR to release for release checks).
 
@@ -250,4 +250,4 @@ If a workflow change breaks pipelines:
 
 - [Installation and setup](installation-guide.md)
 - [Usage and integration](usage-guide.md)
-- [Orchestrator source](../.github/workflows/workflow-orchestrator.yaml)
+- [Orchestrator source](../.github/workflows/central-orchestrator.yaml)

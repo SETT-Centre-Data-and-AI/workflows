@@ -1,3 +1,25 @@
+## v0.9.2 (2026-03-23)
+
+### Fix
+
+- **check-version**: pip installed packaging
+
+## v0.9.1 (2026-03-23)
+
+## v0.9.0 (2026-03-23)
+
+### Feat
+
+- **publish-to-pypi**: switched off by default
+
+### Fix
+
+- **orchestrator**: fix to internal/external entries
+
+### Refactor
+
+- **CI/CD**: refactored to harden some flows, switch PYPI_PUBLISH to false by default, and sort naming clarity
+
 ## v0.8.3 (2026-03-23)
 
 ### Fix

@@ -7,7 +7,7 @@
 ### What's Implemented
 
 #### Core Orchestrator
-- **[workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)**: Main routing control plane
+- **[central-orchestrator.yaml](.github/workflows/central-orchestrator.yaml)**: Main routing control plane
   - Callable reusable workflow invoked by entry workflows
   - Routes to specific validation and promotion workflows
   - Supports `workflow_call` from this repo and downstream repos
@@ -16,7 +16,7 @@
 - **[self-orchestrator.yaml](.github/workflows/self-orchestrator.yaml)**: Development entry point
   - This repository uses its own workflows during development
   - Acts as this repo's only direct PR/manual entry workflow
-  - Calls local `workflow-orchestrator.yaml` instead of published versions
+  - Calls local `central-orchestrator.yaml` instead of published versions
   - Enables testing workflow changes before release
 
 - **[config.yaml](.github/workflows/config.yaml)**: Centralised policy configuration
@@ -86,7 +86,7 @@
 ```
 Downstream Repo Event
     ↓
-workflow_call: workflow-orchestrator.yaml@release   ← Stable release tag
+workflow_call: central-orchestrator.yaml@release   ← Stable release tag
     ↓
   route job reads resolved workflow inputs/defaults
     ↓
@@ -167,7 +167,7 @@ GitHub UI → Organisation Settings → Secrets and variables → Secrets
   • Add PYPI_TOKEN (PyPI publish token)
 
 # 2. Configure downstream caller workflow inputs
-# Add package/repo identity values in .github/workflows/ci-orchestrator.yaml
+# Add package/repo identity values in .github/workflows/orchestrator.yaml
 # Add optional branch/runtime/test-matrix overrides only where needed
 
 # 3. Configure rulesets
@@ -182,7 +182,7 @@ GitHub UI → Organisation Settings → Rulesets
 ```bash
 # Copy repo_template/.github/workflows into the repository root,
 # then remove the outer `repo_template` folder so files end up under .github/workflows.
-git add .github/workflows/ci-orchestrator.yaml .github/workflows/pre-install.sh
+git add .github/workflows/orchestrator.yaml .github/workflows/pre-install.sh
 git commit -m "feat: add centralised CI/CD orchestrator"
 git push origin main
 
@@ -251,7 +251,7 @@ GitHub UI → Repository Settings → Secrets and variables
 
 ## Support and Troubleshooting
 
-- **Routing not working?** → Check [workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml) branch conditions
+- **Routing not working?** → Check [central-orchestrator.yaml](.github/workflows/central-orchestrator.yaml) branch conditions
 - **Check not appearing?** → Verify PR matches routing condition; check workflow syntax
 - **Merge blocked unexpectedly?** → Verify required check is passing; review [ORG_SETUP_GUIDE.md](docs/ORG_SETUP_GUIDE.md) ruleset config
 - **Secret not resolving?** → Confirm secret granted to repository in org settings
@@ -274,7 +274,7 @@ GitHub UI → Repository Settings → Secrets and variables
 │  This Repository (workflows)        │
 │  Central Orchestrator & Testbed     │
 │ ┌─────────────────────────────────┐ │
-│ │ workflow-orchestrator.yaml      │ │ ← Entry point (listens to all events)
+│ │ central-orchestrator.yaml      │ │ ← Entry point (listens to all events)
 │ └─────────────────────────────────┘ │
 │ ┌─────────────────────────────────┐ │
 │ │ config.yaml                     │ │ ← Config resolution (inputs → built-in defaults)
@@ -288,13 +288,13 @@ GitHub UI → Repository Settings → Secrets and variables
 └─────────────────────────────────────┘
             ↓
    Uses: SETT-Centre-Data-and-AI/workflows
-         /.github/workflows/workflow-orchestrator.yaml@main
+         /.github/workflows/central-orchestrator.yaml@main
             ↓
 ┌─────────────────────────────────────┐
 │  Downstream Repos (many)            │
 │ ┌─────────────────────────────────┐ │
 │ │ .github/workflows/              │ │
-│ │  ci-orchestrator.yaml           │ │ ← Single file, calls central orchestrator
+│ │  orchestrator.yaml           │ │ ← Single file, calls central orchestrator
 │ └─────────────────────────────────┘ │
 └─────────────────────────────────────┘
 ```

@@ -213,7 +213,7 @@ Event: workflow_dispatch
 
 ### Check doesn't appear in PR
 
-- Verify routing conditions in [workflow-orchestrator.yaml](./.github/workflows/workflow-orchestrator.yaml)
+- Verify routing conditions in [central-orchestrator.yaml](./.github/workflows/central-orchestrator.yaml)
 - Check PR matches a routing condition (e.g., base branch name)
 - Check workflow file syntax is valid (no YAML errors)
 
@@ -250,5 +250,5 @@ Use GitHub API or Actions artifacts to collect metrics over time.
 
 ## Further Reading
 
-- [Orchestrator source](../.github/workflows/workflow-orchestrator.yaml)
+- [Orchestrator source](../.github/workflows/central-orchestrator.yaml)
 - [Config contract](../.github/workflows/config.yaml)

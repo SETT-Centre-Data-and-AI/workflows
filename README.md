@@ -14,7 +14,7 @@ This repository is the orchestration control plane for adopter repositories:
 
 ## What Is Implemented
 
-- Orchestrator entrypoint: [.github/workflows/workflow-orchestrator.yaml](.github/workflows/workflow-orchestrator.yaml)
+- Orchestrator entrypoint: [.github/workflows/central-orchestrator.yaml](.github/workflows/central-orchestrator.yaml)
 - Centralised config contract: [.github/workflows/config.yaml](.github/workflows/config.yaml)
 - Policy workflow: [.github/workflows/ensure-release-source.yaml](.github/workflows/ensure-release-source.yaml)
 - Policy workflow: [.github/workflows/pre-release-version-check.yaml](.github/workflows/pre-release-version-check.yaml)
@@ -35,7 +35,7 @@ This repository is the orchestration control plane for adopter repositories:
 
 1. Keep this repository as the single source of orchestration logic.
 2. In each external downstream repository, add one lightweight entry workflow that calls this repository via uses and @release.
-3. Keep internal workflow repos (`workflows` and `workflows_development`) on local orchestrator calls (`uses: ./.github/workflows/workflow-orchestrator.yaml`) so CI always tests local workflow changes.
+3. Keep internal workflow repos (`workflows` and `workflows_development`) on local orchestrator calls (`uses: ./.github/workflows/central-orchestrator.yaml`) so CI always tests local workflow changes.
 4. Configure non-secret behaviour in the downstream caller workflow `with:` block (repo names, package names, optional overrides).
 5. The orchestrator resolves configuration once via `config.yaml` and passes resolved values to routed workflows.
 6. Keep optional matrix and pre-install customization in `.github/workflows` files alongside the caller workflow.

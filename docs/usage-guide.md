@@ -15,7 +15,7 @@ Copy [repo_template/.github/workflows](../repo_template/.github/workflows) into 
 Manual example:
 
 ```yaml
-name: CI Orchestrator Entry
+name: Orchestrator Entry
 
 on:
 	pull_request:
@@ -29,7 +29,7 @@ permissions:
 
 jobs:
 	call-central-orchestrator:
-		uses: SETT-Centre-Data-and-AI/workflows/.github/workflows/workflow-orchestrator.yaml@release
+		uses: SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release
 		with:
 			event-name: ${{ github.event_name }}
 			event-action: ${{ github.event.action || '' }}
@@ -59,7 +59,7 @@ jobs:
 ```
 
 Important:
-- Internal workflow repositories (`workflows` and `workflows_development`) must call local orchestrator path: `uses: ./.github/workflows/workflow-orchestrator.yaml`.
+- Internal workflow repositories (`workflows` and `workflows_development`) must call local orchestrator path: `uses: ./.github/workflows/central-orchestrator.yaml`.
 - External downstream repositories should use `@release` to consume stable, tested centralised workflows.
 - Use `@main` only for controlled pre-release validation in external repositories.
 - Tag releases in this repository using semantic versioning.
@@ -79,7 +79,7 @@ Run it from the Actions tab and provide `public_branch`. In the wrapper file, se
 
 ## Configuration Precedence
 
-Configuration is resolved once in [workflow-orchestrator](../.github/workflows/workflow-orchestrator.yaml) via [config](../.github/workflows/config.yaml), then routed workflows receive resolved inputs directly.
+Configuration is resolved once in [central-orchestrator](../.github/workflows/central-orchestrator.yaml) via [config](../.github/workflows/config.yaml), then routed workflows receive resolved inputs directly.
 
 The config workflow supports two layers:
 
@@ -96,11 +96,11 @@ Secrets (sensitive):
 - `PYPI_TOKEN` for publish workflow.
 
 Non-secrets:
-- Store directly in `.github/workflows/ci-orchestrator.yaml` under `with:`.
+- Store directly in `.github/workflows/orchestrator.yaml` under `with:`.
 - Required: `package-name`, `package-slug`, and the applicable repo identity (`private-repo`, `public-repo`, or both).
 - Optional: branch names, runtime versions, and `test-matrix-json`.
-- Optional publish toggle: `publish-on-release` (`true` or `false`).
-- Equivalent repo variable fallback: `PUBLISH_ON_RELEASE=true|false`.
+- Optional publish toggle: `publish-on-release` (`true` or `false`; defaults to `false`, opt-in to publish).
+- Equivalent repo variable fallback: `PUBLISH_ON_RELEASE=true|false` (defaults to `false`).
 
 Matrix note:
 - `test-matrix-json` is inline JSON input.
