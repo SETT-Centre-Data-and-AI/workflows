@@ -46,7 +46,7 @@ jobs:
     if: > # in public repo, and called by orchestrator or run manually on release
       github.repository == needs.env-config.outputs.PUBLIC_REPO &&
       (
-        github.event_name == 'workflow_call' ||
+        github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
          github.ref_name == needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH)
       ) &&

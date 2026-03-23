@@ -43,7 +43,7 @@ jobs:
     if: > # in private repo, and PR merged or run manually
       github.repository == needs.env-config.outputs.PRIVATE_REPO &&
       (
-        github.event_name == 'workflow_call' ||
+        github.event_name != 'workflow_dispatch' ||
         (github.event_name == 'workflow_dispatch' &&
          github.ref_name == needs.env-config.outputs.PRIVATE_REPO_RELEASE_BRANCH)
       )

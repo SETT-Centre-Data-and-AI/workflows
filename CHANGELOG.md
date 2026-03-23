@@ -1,3 +1,9 @@
+## v0.4.0 (2026-03-23)
+
+### Fix
+
+- **post-release-private**: fixed triggering of back sync
+
 ## v0.3.0 (2026-03-23)
 
 ### Feat
