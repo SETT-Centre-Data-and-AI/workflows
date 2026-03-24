@@ -1,3 +1,15 @@
+## v0.11.2 (2026-03-24)
+
+### Fix
+
+- **README.md**: fixed development_lifecycle typos
+
+## v0.11.1 (2026-03-24)
+
+### Fix
+
+- **README.md**: fixed typo in development_lifecycle.png
+
 ## v0.11.0 (2026-03-24)
 
 ### Feat
