@@ -3,6 +3,7 @@ name: Repo Orchestrator
 # Reminder:
 # grant MANAGEMENT_TOKEN to repos that use sync workflows
 # grant PYPI_TOKEN to public repos that publish to PyPI
+# complete settings in config.yaml
 
 on:
   pull_request:
@@ -15,8 +16,13 @@ permissions:
   pull-requests: write
 
 jobs:
+  load-identity:
+    name: Load Config
+    uses: ./.github/workflows/config.yaml
+
   call-central-orchestrator:
     name: Central Orchestrator
+    needs: load-identity
     uses: SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release
     with:
       event-name: ${{ github.event_name }}
@@ -27,30 +33,15 @@ jobs:
       repository: ${{ github.repository }}
       pr-merged: ${{ github.event.pull_request.merged || false }}
 
-      # Required identity values
-      package-name: your_package
-      package-slug: your-package
-      private-repo: your-org/your-private-repo
-      public-repo: your-org/your-public-repo
-
-      # Optional branch overrides
-      # private-repo-main-branch: main
-      # private-repo-release-branch: release
-      # private-repo-incoming-branch: incoming_from_public
-      # public-repo-release-branch: release
-      # public-repo-incoming-branch: incoming_from_private
-
-      # Optional runtime overrides
-      # build-smoke-python-version: '3.13'
-      # version-check-python-version: '3.13'
-      # publish-python-version: '3.13'
-
-      # Optional: disable publish workflow on public release PR merges
-      # publish-on-release: 'false'
-
-      # Optional: disable publish via repo variable fallback instead
-      # PUBLISH_ON_RELEASE=false
-
-      # Optional matrix override (compact JSON on one line)
-      # test-matrix-json: '{"include":[{"os":"ubuntu-latest","python-version":"3.13"}]}'
+      # Identity values from config.yaml
+      package-name: ${{ needs.load-identity.outputs.package-name }}
+      package-slug: ${{ needs.load-identity.outputs.package-slug }}
+      private-repo: ${{ needs.load-identity.outputs.private-repo }}
+      public-repo: ${{ needs.load-identity.outputs.public-repo }}
+      build-smoke-python-version: ${{ needs.load-identity.outputs.build-smoke-python-version }}
+      version-check-python-version: ${{ needs.load-identity.outputs.version-check-python-version }}
+      publish-python-version: ${{ needs.load-identity.outputs.publish-python-version }}
+      publish-on-release: ${{ needs.load-identity.outputs.publish-on-release }}
+      sync-to-public: ${{ needs.load-identity.outputs.sync-to-public }}
+      test-matrix-json: ${{ needs.load-identity.outputs.test-matrix-json }}
     secrets: inherit

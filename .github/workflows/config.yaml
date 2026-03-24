@@ -50,6 +50,9 @@ on:
       publish-on-release:
         required: false
         type: string
+      sync-to-public:
+        required: false
+        type: string
     outputs:
 
       # Package
@@ -87,6 +90,8 @@ on:
         value: ${{ jobs.export-env.outputs.PUBLISH_PYTHON_VERSION }}
       PUBLISH_ON_RELEASE:
         value: ${{ jobs.export-env.outputs.PUBLISH_ON_RELEASE }}
+      SYNC_TO_PUBLIC:
+        value: ${{ jobs.export-env.outputs.SYNC_TO_PUBLIC }}
 
 
 
@@ -117,7 +122,7 @@ env:
   # - ensure-release-source: validates private main->release and public incoming->release routes
   # - pre-release-version-check: PR to PRIVATE_REPO_RELEASE_BRANCH or PUBLIC_REPO_RELEASE_BRANCH
   # - back-sync-release-to-main: merged PR main->release in private repo (plus manual)
-  # - sync-to-public: merged PR to private release (plus manual)
+  # - sync-to-public: merged PR to private release (plus manual, when enabled)
   # - publish-to-pypi: merged PR to public release (plus manual on release branch)
   # - sync-from-public: manual only with selected public branch input
 
@@ -127,6 +132,7 @@ env:
   VERSION_CHECK_PYTHON_VERSION: ${{ inputs.version-check-python-version || '3.13' }}
   PUBLISH_PYTHON_VERSION: ${{ inputs.publish-python-version || '3.13' }}
   PUBLISH_ON_RELEASE_RAW: ${{ inputs.publish-on-release || vars.PUBLISH_ON_RELEASE || 'false' }}
+  SYNC_TO_PUBLIC_RAW: ${{ inputs.sync-to-public || vars.SYNC_TO_PUBLIC || 'false' }}
 # =================
 # End Manual Config
 # =================
@@ -159,6 +165,7 @@ jobs:
       VERSION_CHECK_PYTHON_VERSION: ${{ steps.set.outputs.VERSION_CHECK_PYTHON_VERSION }}
       PUBLISH_PYTHON_VERSION: ${{ steps.set.outputs.PUBLISH_PYTHON_VERSION }}
       PUBLISH_ON_RELEASE: ${{ steps.set.outputs.PUBLISH_ON_RELEASE }}
+      SYNC_TO_PUBLIC: ${{ steps.set.outputs.SYNC_TO_PUBLIC }}
 
 
     steps:
@@ -178,6 +185,12 @@ jobs:
         publish_on_release="${PUBLISH_ON_RELEASE_RAW,,}"
         if [ "$publish_on_release" != "true" ] && [ "$publish_on_release" != "false" ]; then
           echo "PUBLISH_ON_RELEASE must be 'true' or 'false'."
+          exit 1
+        fi
+
+        sync_to_public="${SYNC_TO_PUBLIC_RAW,,}"
+        if [ "$sync_to_public" != "true" ] && [ "$sync_to_public" != "false" ]; then
+          echo "SYNC_TO_PUBLIC must be 'true' or 'false'."
           exit 1
         fi
 
@@ -206,3 +219,4 @@ jobs:
         echo "VERSION_CHECK_PYTHON_VERSION=${{ env.VERSION_CHECK_PYTHON_VERSION }}" >> "$GITHUB_OUTPUT"
         echo "PUBLISH_PYTHON_VERSION=${{ env.PUBLISH_PYTHON_VERSION }}" >> "$GITHUB_OUTPUT"
         echo "PUBLISH_ON_RELEASE=$publish_on_release" >> "$GITHUB_OUTPUT"
+        echo "SYNC_TO_PUBLIC=$sync_to_public" >> "$GITHUB_OUTPUT"

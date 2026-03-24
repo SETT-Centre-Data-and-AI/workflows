@@ -1,3 +1,15 @@
+## v0.11.0 (2026-03-24)
+
+### Feat
+
+- **repo_template**: tweaked template to centralise config variables
+
+## v0.10.1 (2026-03-24)
+
+### Feat
+
+- **sync-to-public**: default behaviour false, with override
+
 ## v0.10.0 (2026-03-23)
 
 ### Feat

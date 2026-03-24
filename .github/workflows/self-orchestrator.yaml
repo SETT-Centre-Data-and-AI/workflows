@@ -39,4 +39,5 @@ jobs:
       version-check-python-version: '3.13'
       publish-python-version: '3.13'
       publish-on-release: 'false'
+      sync-to-public: 'true'
     secrets: inherit
