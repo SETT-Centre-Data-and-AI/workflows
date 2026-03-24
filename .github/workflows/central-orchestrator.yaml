@@ -71,6 +71,9 @@ on:
       publish-on-release:
         required: false
         type: string
+      sync-to-public:
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -95,6 +98,7 @@ jobs:
       version-check-python-version: ${{ inputs.version-check-python-version }}
       publish-python-version: ${{ inputs.publish-python-version }}
       publish-on-release: ${{ inputs.publish-on-release }}
+      sync-to-public: ${{ inputs.sync-to-public }}
 
   route:
     name: Route
@@ -120,6 +124,7 @@ jobs:
       PUBLIC_REPO_RELEASE_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_RELEASE_BRANCH }}
       PUBLIC_REPO_INCOMING_BRANCH: ${{ needs.env-config.outputs.PUBLIC_REPO_INCOMING_BRANCH }}
       PUBLISH_ON_RELEASE: ${{ needs.env-config.outputs.PUBLISH_ON_RELEASE }}
+      SYNC_TO_PUBLIC: ${{ needs.env-config.outputs.SYNC_TO_PUBLIC }}
       CALLER_EVENT_NAME: ${{ inputs.event-name }}
       CALLER_EVENT_ACTION: ${{ inputs.event-action }}
       CALLER_BASE_REF: ${{ inputs.base-ref }}
@@ -191,7 +196,7 @@ jobs:
         if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
           if [ "$REPOSITORY_NAME" = "$PRIVATE_REPO" ] && [ "$REF_NAME" = "$PRIVATE_REPO_RELEASE_BRANCH" ]; then
             RUN_BACK_SYNC=true
-            if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+            if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ] && [ "$SYNC_TO_PUBLIC" = "true" ]; then
               RUN_SYNC_TO_PUBLIC=true
             fi
           fi
@@ -215,7 +220,7 @@ jobs:
 
             if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ] && [ "$HEAD_REF" = "$PRIVATE_REPO_MAIN_BRANCH" ]; then
               RUN_BACK_SYNC=true
-              if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ]; then
+              if [ -n "$PUBLIC_REPO" ] && [ "$PUBLIC_REPO" != "$PRIVATE_REPO" ] && [ "$SYNC_TO_PUBLIC" = "true" ]; then
                 RUN_SYNC_TO_PUBLIC=true
               fi
             fi

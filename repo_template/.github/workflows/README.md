@@ -11,35 +11,38 @@ Template location:
 1. Copy `repo_template/.github/workflows` to `/.github/workflows` in your downstream repository.
 2. Confirm these files exist:
 
+- `/.github/workflows/config.yaml`
 - `/.github/workflows/orchestrator.yaml`
 - `/.github/workflows/sync-from-public.yaml`
 - `/.github/workflows/pre-install.sh`
 - `/.github/workflows/README.md`
 
-## Configure `orchestrator.yaml`
+## Configure `config.yaml`
 
-Set required values:
+Set configuration values once in this file:
 
 - `package-name`
 - `package-slug`
-- `private-repo` and/or `public-repo`
+- `private-repo`
+- `public-repo`
+- `build-smoke-python-version`
+- `version-check-python-version`
+- `publish-python-version`
+- `publish-on-release`
+- `sync-to-public`
+- `test-matrix-json` (optional compact JSON; leave empty for central defaults)
 
-Optional values:
+Both `orchestrator.yaml` and `sync-from-public.yaml` read from this file. Edit placeholder values to match your setup.
 
-- `publish-on-release: 'true'` if you want publish on public release merges (default is off)
-- `test-matrix-json` if you want a custom test matrix
-- branch overrides if you do not use `main` and `release`
+## `orchestrator.yaml`
+
+No identity or runtime settings are configured in this file; it reads all values from `config.yaml`.
 
 This file calls the central stable orchestrator:
 
 - `SETT-Centre-Data-and-AI/workflows/.github/workflows/central-orchestrator.yaml@release`
 
-## Configure `sync-from-public.yaml`
-
-Set:
-
-- `private-repo`
-- `public-repo`
+## `sync-from-public.yaml`
 
 Use this workflow for manual pullback from a selected public branch to private.
 

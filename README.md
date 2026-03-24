@@ -50,7 +50,7 @@ This means workflow changes are tested directly from the current branch.
  - **Private/Public: `main/incoming_from_private` -> `release`:** Runs `ensure-release-source.yaml` and `pre-release-version-check.yaml` to ensure PR comes from `main` and version has been bumped
 
 ### PR Merged
- - **Private: `main` -> `release`:** Runs `back-sync-release-to-main.yaml` and `sync-to-public.yaml` to commit the release back to main (private), and sync to the public repo.
+ - **Private: `main` -> `release`:** Runs `back-sync-release-to-main.yaml` and optionally `sync-to-public.yaml` (when `sync-to-public` is enabled) to commit the release back to main (private), and sync to the public repo.
  - **Public: `incoming_from_private` -> `release`:** Runs `publish-to-pypi.yaml` when `publish-on-release` is enabled.
 
 ### Manual Dispatch
@@ -88,68 +88,9 @@ flowchart TD
 ```
 
 ## Development Lifecycle
-
-```mermaid
-flowchart TB
-
-    subgraph LEGEND[Legend]
-    direction TB
-        L_S[Source Branch]
-        L_O(PR opened Workflow)
-        L_R{Review: n reviewers}
-        L_T[Target Branch]
-        L_P(PR Closed Workflow)
-        L_S --> L_O --> L_R --> L_T --> L_P
-    end
-
-    subgraph PRIVATE[Private]
-    direction TB
-        P_MAIN[main]
-        P_DEV[any dev branch]
-        P_WF_BUILD(build-and-test)
-        P_REV_MAIN{Review: 1}
-        P_WF_REL(ensure-release-source pre-release-version-check)
-        P_REV_REL{Review: 1}
-        P_REL[release]
-        P_WF_BACK(back-sync-release-to-main)
-        P_WF_SYNC(sync-to-public)
-    end
-
-    subgraph PUBLIC[Public]
-    direction LR
-        U_IN[incoming_from_private]
-        U_REV{Review: 1}
-        U_REL[release]
-        U_WF_PUB(publish-to-pypi)
-    end
-
-    P_MAIN -->|Branch: any| P_DEV
-    P_DEV -.->|PR Opened: any to main| P_WF_BUILD
-    P_WF_BUILD -.-> P_REV_MAIN
-    P_REV_MAIN -->|PR Merged: any to main| P_MAIN
-
-    P_MAIN -.->|PR Opened: main to release| P_WF_REL
-    P_WF_REL -.-> P_REV_REL
-    P_REV_REL -->|PR Squashed: main to release| P_REL
-
-    P_REL -.->|Post-merge trigger| P_WF_BACK
-    P_REL -.->|Post-merge trigger| P_WF_SYNC
-    P_WF_BACK -.->|Auto back sync release to main| P_MAIN
-    P_WF_SYNC -.->|Sync release to incoming_from_private| U_IN
-
-    U_IN -.->|PR Opened: incoming_from_private to release| U_REV
-    U_REV -->|PR Merged incoming_from_private to release| U_REL
-    U_REL -.->|Post-merge trigger| U_WF_PUB
-
-    classDef branchNode fill:#ffe3e3,stroke:#c01c28,color:#7a0010,stroke-width:2px;
-    classDef workflowNode fill:#e6f4ff,stroke:#175cd3,color:#0b3b91,stroke-width:2px;
-    classDef reviewNode fill:#fff4cc,stroke:#b54708,color:#7a2e0e,stroke-width:2px;
-    classDef markerNode fill:#f5f5f5,stroke:#667085,color:#1f2937;
-
-    class P_MAIN,P_REL,P_DEV,U_REL,U_IN,L_S,L_T branchNode;
-    class P_WF_BUILD,P_WF_REL,P_WF_BACK,P_WF_SYNC,U_WF_PUB,L_O,L_P workflowNode;
-    class P_REV_MAIN,P_REV_REL,U_REV,L_R reviewNode;
-```
+<p align="center">
+  <img src="docs/images/development_lifecycle.png" alt="DAIR Development Lifecycle">
+</p>
 
 ## Licence
 
