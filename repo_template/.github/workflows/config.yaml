@@ -55,8 +55,8 @@ jobs:
       PACKAGE_SLUG: your-package                          # e.g., your-package (URL-safe)
 
       # Repositories
-      PRIVATE_REPO: your-org/your-private-repo            # Development repo e.g. SETT-Centre-Data-and-AI/your_package_development
-      PUBLIC_REPO: your-org/your-public-repo              # Public repo      e.g. SETT-Centre-Data-and-AI/your_package
+      PRIVATE_REPO: your-org/your-private-repo            # Use owner/repo only (no github.com prefix)
+      PUBLIC_REPO: your-org/your-public-repo              # Use owner/repo only (no github.com prefix)
 
       # Runtime and policy defaults
       BUILD_SMOKE_PYTHON_VERSION: '3.13'
