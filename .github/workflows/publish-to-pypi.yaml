@@ -95,6 +95,10 @@ jobs:
           exit 1
         fi
 
+    - name: Run Pre-Install Script
+      if: hashFiles('.github/workflows/pre-install.sh') != ''
+      run: bash .github/workflows/pre-install.sh
+
     - name: Build Distributions
       run: python -m build
 
