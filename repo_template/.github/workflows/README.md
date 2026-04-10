@@ -48,7 +48,11 @@ Use this workflow for manual pullback from a selected public branch to private.
 
 ## Optional `pre-install.sh`
 
-Use this script if your tests need extra setup before package install.
+Use this script if your repository needs extra setup after Python/tooling install and before package installation steps.
+
+The hook is used by the central workflows before build/test install paths and before wheel smoke validation in build and publish workflows.
+
+Make the script safe to run more than once in the same workflow run.
 
 ## Required Secrets
 

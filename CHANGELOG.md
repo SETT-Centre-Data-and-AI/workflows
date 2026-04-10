@@ -1,3 +1,9 @@
+## v0.12.0 (2026-04-10)
+
+### Fix
+
+- **publish-to-pypi**: integrated the upstream repo pre-install.sh file when building
+
 ## v0.11.3 (2026-03-24)
 
 ## v0.11.2 (2026-03-24)
