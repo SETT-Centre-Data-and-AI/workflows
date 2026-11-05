@@ -1,3 +1,9 @@
+## v0.13.0 (2026-11-05)
+
+### Fix
+
+- **build-and-test**: fixed workflows to force `uv sync` to adhere to specified python version in testing matrix
+
 ## v0.12.0 (2026-04-10)
 
 ### Fix
