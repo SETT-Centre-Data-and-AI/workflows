@@ -18,6 +18,14 @@ def test_build_and_test_runs_preinstall_before_poetry_and_uv_installs() -> None:
     assert workflow.index(uv_hook) < workflow.index(uv_install)
 
 
+def test_build_and_test_pins_uv_to_the_test_matrix_python_version() -> None:
+    workflow = Path(".github/workflows/build-and-test.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'uv sync --python "${{ matrix.python-version }}"' in workflow
+
+
 def test_publish_runs_preinstall_before_wheel_smoke_install() -> None:
     workflow = Path(".github/workflows/publish-to-pypi.yaml").read_text(
         encoding="utf-8"
